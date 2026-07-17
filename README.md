@@ -247,3 +247,16 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
+
+## Releases
+
+The Forgejo workflow in `.forgejo/workflows/publish.yml` is currently disabled
+with a job-level `if: false` guard, so it does not allocate a runner. Once the
+guard is removed, it validates every push to `main` and publishes `mirtal-sys`,
+`mirtal-macros`, and `mirtal`, in that order, when the version under
+`[workspace.package]` is not present on crates.io. Pushes that retain an already
+published version are validated and then skipped.
+
+Publishing requires a self-hosted Apple Silicon Forgejo runner labeled
+`macos-arm64` with Xcode, the Metal toolchain, Homebrew MLX, and rustup. The
+Codeberg repository must provide a `CARGO_REGISTRY_TOKEN` Actions secret.
