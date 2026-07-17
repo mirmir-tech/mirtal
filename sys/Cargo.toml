@@ -1,0 +1,18 @@
+[package]
+name = "mirtal-sys"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Private native bridge for mirtal"
+links = "mirtal"
+build = "build.rs"
+
+[dependencies]
+cxx.workspace = true
+
+[build-dependencies]
+cxx-build = "1"
+
+[lints]
+workspace = true
