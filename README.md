@@ -51,7 +51,7 @@ not required to compile or use mirtal.
 
 ```toml
 [dependencies]
-mirtal = "0.1"
+mirtal = "0.2.0"
 ```
 
 Consumers should not depend directly on `mirtal-sys` or `mirtal-macros`.

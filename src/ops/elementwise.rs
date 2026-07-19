@@ -52,5 +52,19 @@ impl Graph<'_> {
 
     unary!("Applies the natural exponential elementwise.", exp, exp);
 
+    unary!("Applies the Gauss error function elementwise.", erf, erf);
+
+    unary!("Applies the cosine elementwise.", cos, cos);
+
+    unary!("Applies the sine elementwise.", sin, sin);
+
     unary!("Computes the reciprocal of every array element.", reciprocal, reciprocal);
+
+    /// Clips every value between broadcastable `minimum` and `maximum` arrays.
+    pub fn clip(self, input: &Array, minimum: &Array, maximum: &Array) -> Result<Array> {
+        Array::from_raw(
+            ffi::clip(input.native()?, minimum.native()?, maximum.native()?, self.native()?)?,
+            "clip",
+        )
+    }
 }

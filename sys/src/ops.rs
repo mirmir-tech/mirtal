@@ -11,6 +11,9 @@ pub mod ffi {
         fn subtract(left: &Array, right: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn negative(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn exp(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn erf(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn cos(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn sin(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn reciprocal(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn minimum(left: &Array, right: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn maximum(left: &Array, right: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
@@ -19,6 +22,20 @@ pub mod ffi {
         fn less(left: &Array, right: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn greater_equal(left: &Array, right: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn logical_and(left: &Array, right: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn clip(
+            input: &Array,
+            minimum: &Array,
+            maximum: &Array,
+            stream: &Stream,
+        ) -> Result<SharedPtr<Array>>;
+        fn matmul(left: &Array, right: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn layer_norm(
+            input: &Array,
+            weight: &Array,
+            bias: &Array,
+            eps: f32,
+            stream: &Stream,
+        ) -> Result<SharedPtr<Array>>;
         fn arange(
             start: f32,
             stop: f32,

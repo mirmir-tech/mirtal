@@ -31,6 +31,15 @@ std::shared_ptr<Array> negative(const Array& x, const Stream& s) {
 std::shared_ptr<Array> exp(const Array& x, const Stream& s) {
   return wrap_op(mx::exp(x.value, s.value));
 }
+std::shared_ptr<Array> erf(const Array& x, const Stream& s) {
+  return wrap_op(mx::erf(x.value, s.value));
+}
+std::shared_ptr<Array> cos(const Array& x, const Stream& s) {
+  return wrap_op(mx::cos(x.value, s.value));
+}
+std::shared_ptr<Array> sin(const Array& x, const Stream& s) {
+  return wrap_op(mx::sin(x.value, s.value));
+}
 std::shared_ptr<Array> reciprocal(const Array& x, const Stream& s) {
   return wrap_op(mx::reciprocal(x.value, s.value));
 }
@@ -54,6 +63,30 @@ std::shared_ptr<Array> greater_equal(const Array& a, const Array& b, const Strea
 }
 std::shared_ptr<Array> logical_and(const Array& a, const Array& b, const Stream& s) {
   return wrap_op(mx::logical_and(a.value, b.value, s.value));
+}
+std::shared_ptr<Array> clip(
+    const Array& input, const Array& minimum, const Array& maximum, const Stream& s) {
+  return wrap_op(mx::clip(
+      input.value,
+      std::optional<mx::array>{minimum.value},
+      std::optional<mx::array>{maximum.value},
+      s.value));
+}
+std::shared_ptr<Array> matmul(const Array& a, const Array& b, const Stream& s) {
+  return wrap_op(mx::matmul(a.value, b.value, s.value));
+}
+std::shared_ptr<Array> layer_norm(
+    const Array& input,
+    const Array& weight,
+    const Array& bias,
+    float eps,
+    const Stream& s) {
+  return wrap_op(mx::fast::layer_norm(
+      input.value,
+      std::optional<mx::array>{weight.value},
+      std::optional<mx::array>{bias.value},
+      eps,
+      s.value));
 }
 std::shared_ptr<Array> arange(
     float start, float stop, float step, std::uint8_t dtype, const Stream& s) {
