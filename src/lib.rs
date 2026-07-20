@@ -35,7 +35,9 @@ pub use metal::{
     TemplateValue,
 };
 pub use mirtal_macros::{compiled, metal_kernel, metal_library};
-pub use quantized::{GatherQmmOptions, Quantization, Quantized, QuantizedArrays};
+pub use quantized::{
+    GatherQmmOptions, Quantization, Quantized, QuantizedArrays, SymmetricQuantization,
+};
 pub use rope::{FrequencyRopeOptions, RopeOptions};
 pub use shape::Shape;
 pub use stream::Stream;

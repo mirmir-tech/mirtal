@@ -3,6 +3,42 @@ use mirtal_sys::ffi;
 use crate::{Array, Error, Graph, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// Symmetric packed format for accelerator-resident runtime state.
+pub struct SymmetricQuantization {
+    bits: u8,
+}
+
+impl SymmetricQuantization {
+    /// Creates a signed symmetric format packed into 32-bit words.
+    pub fn new(bits: u8) -> Result<Self> {
+        if !matches!(bits, 4 | 8) {
+            return Err(Error::InvalidQuantization(
+                "symmetric packing supports 4-bit or 8-bit elements".into(),
+            ));
+        }
+        Ok(Self { bits })
+    }
+
+    #[must_use]
+    /// Returns the encoded element width.
+    pub const fn bits(self) -> u8 {
+        self.bits
+    }
+
+    #[must_use]
+    /// Returns the number of encoded elements in one 32-bit word.
+    pub const fn elements_per_word(self) -> usize {
+        32 / self.bits as usize
+    }
+
+    #[must_use]
+    /// Returns the number of 32-bit words needed for `elements` values.
+    pub const fn packed_words(self, elements: usize) -> usize {
+        elements.div_ceil(self.elements_per_word())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// Affine quantization format shared by weights, scales, and biases.
 pub struct Quantization {
     group_size: i32,
@@ -168,5 +204,21 @@ const fn native_options(
         bits: format.bits,
         transpose,
         sorted_indices,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SymmetricQuantization;
+    use crate::Result;
+
+    #[test]
+    fn sizes_symmetric_packed_words() -> Result<()> {
+        let int8 = SymmetricQuantization::new(8)?;
+        let int4 = SymmetricQuantization::new(4)?;
+        assert_eq!(int8.packed_words(129), 33);
+        assert_eq!(int4.packed_words(129), 17);
+        assert!(SymmetricQuantization::new(3).is_err());
+        Ok(())
     }
 }
