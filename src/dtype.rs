@@ -16,6 +16,8 @@ pub enum DType {
     Bfloat16 = 4,
     /// IEEE 754 single-precision values.
     Float32 = 5,
+    /// Unsigned 8-bit integers.
+    Uint8 = 6,
 }
 
 impl TryFrom<u8> for DType {
@@ -29,6 +31,7 @@ impl TryFrom<u8> for DType {
             3 => Ok(Self::Float16),
             4 => Ok(Self::Bfloat16),
             5 => Ok(Self::Float32),
+            6 => Ok(Self::Uint8),
             _ => Err(Error::UnsupportedDtype(value)),
         }
     }

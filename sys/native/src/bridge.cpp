@@ -32,6 +32,7 @@ mx::Dtype dtype(std::uint8_t value) {
     case 3: return mx::float16;
     case 4: return mx::bfloat16;
     case 5: return mx::float32;
+    case 6: return mx::uint8;
     default: throw std::runtime_error("unsupported MLX dtype");
   }
 }
@@ -43,6 +44,7 @@ std::uint8_t dtype(const mx::Dtype& value) {
   if (value == mx::float16) return 3;
   if (value == mx::bfloat16) return 4;
   if (value == mx::float32) return 5;
+  if (value == mx::uint8) return 6;
   return 255;
 }
 

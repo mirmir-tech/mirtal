@@ -113,6 +113,7 @@ fn dtype_tokens(kernel: &Kernel, buffer: &Buffer) -> TokenStream {
     let dtype = match element.to_string().as_str() {
         "bool" => quote!(::mirtal::DType::Bool),
         "u32" => quote!(::mirtal::DType::Uint32),
+        "u8" => quote!(::mirtal::DType::Uint8),
         "i32" => quote!(::mirtal::DType::Int32),
         "f16" => quote!(::mirtal::DType::Float16),
         "bf16" => quote!(::mirtal::DType::Bfloat16),
@@ -137,6 +138,7 @@ pub fn metal_type(element: &Ident) -> syn::Result<&'static str> {
     match element.to_string().as_str() {
         "bool" => Ok("bool"),
         "u32" => Ok("uint"),
+        "u8" => Ok("uchar"),
         "i32" => Ok("int"),
         "f16" => Ok("half"),
         "bf16" => Ok("bfloat"),

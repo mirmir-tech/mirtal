@@ -32,6 +32,7 @@ mx::Dtype dtype(std::uint8_t value) {
     case 3: return mx::float16;
     case 4: return mx::bfloat16;
     case 5: return mx::float32;
+    case 6: return mx::uint8;
     default: throw std::runtime_error("unsupported Metal output dtype");
   }
 }

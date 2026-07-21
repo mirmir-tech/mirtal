@@ -194,6 +194,6 @@ fn comma(input: ParseStream<'_>) -> syn::Result<()> {
 fn primitive(element: &Ident) -> bool {
     matches!(
         element.to_string().as_str(),
-        "bool" | "u32" | "i32" | "f16" | "bf16" | "f32" | "float"
+        "bool" | "u8" | "u32" | "i32" | "f16" | "bf16" | "f32" | "float"
     )
 }
