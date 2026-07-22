@@ -162,7 +162,7 @@ dependencies = [
 
 [[package]]
 name = "mirtal"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "cxx",
  "mirtal-macros",
@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "mirtal-macros"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -181,7 +181,7 @@ dependencies = [
 
 [[package]]
 name = "mirtal-sys"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "cxx",
  "cxx-build",
@@ -328,3 +328,11 @@ checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
 dependencies = [
  "windows-link",
 ]
+
+[[patch.unused]]
+name = "libmir"
+version = "0.3.0"
+
+[[patch.unused]]
+name = "mircuda"
+version = "0.3.0"
