@@ -80,6 +80,17 @@ fn clones_immutable_array_handles_without_copying_data() -> Result<()> {
 }
 
 #[test]
+fn reads_an_exact_u32_array_after_async_evaluation() -> Result<()> {
+    let stream = Device::gpu(0).new_stream()?;
+    let logits = Array::from_slice(&[1.0_f32, 3.0, 2.0, 4.0, 0.0, 2.0], [2, 1, 3])?;
+    let tokens = stream.graph().argmax_axis(&logits, -1, false)?;
+    stream.eval(&tokens)?;
+
+    assert_eq!(stream.read::<u32>(&tokens)?, vec![1, 0]);
+    Ok(())
+}
+
+#[test]
 fn compiles_an_ordinary_rust_graph_definition() -> Result<()> {
     let stream = Device::gpu(0).new_stream()?;
     let compiled =

@@ -66,6 +66,9 @@ pub mod ffi {
         ) -> Result<SharedPtr<Array>>;
         fn rms_norm_unit(input: &Array, eps: f32, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn astype(input: &Array, dtype: u8, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn from_fp8(input: &Array, dtype: u8, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn to_fp8(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn view_dtype(input: &Array, dtype: u8, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn reshape(input: &Array, shape: &[i32], stream: &Stream) -> Result<SharedPtr<Array>>;
         fn transpose(input: &Array, axes: &[i32], stream: &Stream) -> Result<SharedPtr<Array>>;
         fn expand_dims(input: &Array, axes: &[i32], stream: &Stream) -> Result<SharedPtr<Array>>;
@@ -85,6 +88,19 @@ pub mod ffi {
             bits: i32,
             stream: &Stream,
         ) -> Result<UniquePtr<Arrays>>;
+        fn quantize_mxfp8(input: &Array, stream: &Stream) -> Result<UniquePtr<Arrays>>;
+        fn mxfp8_matmul(
+            input: &Array,
+            weight: &Array,
+            scales: &Array,
+            transpose: bool,
+            stream: &Stream,
+        ) -> Result<SharedPtr<Array>>;
+        fn dequantize_mxfp8(
+            weight: &Array,
+            scales: &Array,
+            stream: &Stream,
+        ) -> Result<SharedPtr<Array>>;
         fn quantized_matmul(
             input: &Array,
             weight: &Array,

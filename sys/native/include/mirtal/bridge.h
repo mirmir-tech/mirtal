@@ -139,6 +139,15 @@ std::shared_ptr<Array> astype(
     const Array& input,
     std::uint8_t dtype,
     const Stream& stream);
+std::shared_ptr<Array> from_fp8(
+    const Array& input,
+    std::uint8_t dtype,
+    const Stream& stream);
+std::shared_ptr<Array> to_fp8(const Array& input, const Stream& stream);
+std::shared_ptr<Array> view_dtype(
+    const Array& input,
+    std::uint8_t dtype,
+    const Stream& stream);
 std::shared_ptr<Array> reshape(
     const Array& input,
     rust::Slice<const std::int32_t> shape,
