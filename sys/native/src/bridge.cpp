@@ -61,6 +61,15 @@ void copy(const Array& array, const Stream& stream, rust::Slice<T> output, mx::D
   if (array.value.size() != output.size()) {
     throw std::runtime_error("array output length does not match");
   }
+  if (
+      array.value.dtype() == target &&
+      array.value.flags().row_contiguous &&
+      array.value.offset() == 0 &&
+      array.value.data_size() == array.value.size()) {
+    mx::eval(array.value);
+    std::copy_n(array.value.data<T>(), output.size(), output.data());
+    return;
+  }
   auto converted = mx::astype(array.value, target, stream.value);
   auto evaluated = mx::contiguous(converted, false, stream.value);
   evaluated.eval();
@@ -194,6 +203,23 @@ std::shared_ptr<Array> astype(
   return input.value.dtype() == dtype(target)
       ? wrap(input.value)
       : wrap(mx::astype(input.value, dtype(target), stream.value));
+}
+std::shared_ptr<Array> from_fp8(
+    const Array& input,
+    std::uint8_t target,
+    const Stream& stream) {
+  return wrap(mx::from_fp8(input.value, dtype(target), stream.value));
+}
+std::shared_ptr<Array> to_fp8(const Array& input, const Stream& stream) {
+  return wrap(mx::to_fp8(input.value, stream.value));
+}
+std::shared_ptr<Array> view_dtype(
+    const Array& input,
+    std::uint8_t target,
+    const Stream& stream) {
+  return input.value.dtype() == dtype(target)
+      ? wrap(input.value)
+      : wrap(mx::view(input.value, dtype(target), stream.value));
 }
 std::shared_ptr<Array> reshape(
     const Array& input,

@@ -36,7 +36,8 @@ pub use metal::{
 };
 pub use mirtal_macros::{compiled, metal_kernel, metal_library};
 pub use quantized::{
-    GatherQmmOptions, Quantization, Quantized, QuantizedArrays, SymmetricQuantization,
+    GatherQmmOptions, MxFp8, MxFp8Arrays, Quantization, Quantized, QuantizedArrays,
+    SymmetricQuantization,
 };
 pub use rope::{FrequencyRopeOptions, RopeOptions};
 pub use shape::Shape;

@@ -18,7 +18,7 @@ version = "0.3.0"
 edition = "2024"
 license = "Apache-2.0"
 publish = ["crates-io"]
-repository = "https://codeberg.org/mirmir/mirtal"
+repository = "https://github.com/mirmir-tech/mirtal"
 
 [workspace.dependencies]
 cxx = "1"

@@ -40,7 +40,7 @@ fn native_arrays(
 ) -> std::result::Result<Vec<cxx::SharedPtr<ffi::Array>>, String> {
     let arrays = arrays.as_ref().ok_or_else(|| "compiled graph inputs are null".to_owned())?;
     (0..ffi::arrays_len(arrays))
-        .map(|index| ffi::arrays_get(arrays, index).map_err(|error| error.to_string()))
+        .map(|index| string_result(ffi::arrays_get(arrays, index)))
         .collect()
 }
 
@@ -48,5 +48,14 @@ fn native_stream(
     arrays: &cxx::UniquePtr<ffi::Arrays>,
 ) -> std::result::Result<&ffi::Stream, String> {
     let arrays = arrays.as_ref().ok_or_else(|| "compiled graph inputs are null".to_owned())?;
-    ffi::arrays_stream(arrays).map_err(|error| error.to_string())
+    string_result(ffi::arrays_stream(arrays))
+}
+
+fn string_result<T, E: std::fmt::Display>(
+    result: std::result::Result<T, E>,
+) -> std::result::Result<T, String> {
+    match result {
+        Ok(value) => Ok(value),
+        Err(error) => Err(error.to_string()),
+    }
 }

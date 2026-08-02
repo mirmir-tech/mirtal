@@ -19,6 +19,51 @@ std::unique_ptr<Arrays> quantize(
   return std::make_unique<Arrays>(std::move(values), &stream);
 }
 
+std::unique_ptr<Arrays> quantize_mxfp8(
+    const Array& input,
+    const Stream& stream) {
+  auto values = mx::quantize(
+      input.value, 32, 8, "mxfp8", std::nullopt, stream.value);
+  if (values.size() != 2) {
+    throw std::runtime_error("MXFP8 quantize did not return weight/scales");
+  }
+  return std::make_unique<Arrays>(std::move(values), &stream);
+}
+
+std::shared_ptr<Array> mxfp8_matmul(
+    const Array& input,
+    const Array& weight,
+    const Array& scales,
+    bool transpose,
+    const Stream& stream) {
+  return std::make_shared<Array>(mx::quantized_matmul(
+      input.value,
+      weight.value,
+      scales.value,
+      std::nullopt,
+      transpose,
+      32,
+      8,
+      "mxfp8",
+      stream.value));
+}
+
+std::shared_ptr<Array> dequantize_mxfp8(
+    const Array& weight,
+    const Array& scales,
+    const Stream& stream) {
+  return std::make_shared<Array>(mx::dequantize(
+      weight.value,
+      scales.value,
+      std::nullopt,
+      32,
+      8,
+      "mxfp8",
+      std::nullopt,
+      std::nullopt,
+      stream.value));
+}
+
 std::shared_ptr<Array> quantized_matmul(
     const Array& input,
     const Array& weight,

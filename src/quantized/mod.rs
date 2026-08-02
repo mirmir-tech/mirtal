@@ -2,6 +2,10 @@ use mirtal_sys::ffi;
 
 use crate::{Array, Error, Graph, Result};
 
+mod mxfp8;
+
+pub use mxfp8::{MxFp8, MxFp8Arrays};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// Symmetric packed format for accelerator-resident runtime state.
 pub struct SymmetricQuantization {
@@ -210,7 +214,7 @@ const fn native_options(
 #[cfg(test)]
 mod tests {
     use super::SymmetricQuantization;
-    use crate::Result;
+    use crate::{Array, DType, Device, Result};
 
     #[test]
     fn sizes_symmetric_packed_words() -> Result<()> {
@@ -219,6 +223,17 @@ mod tests {
         assert_eq!(int8.packed_words(129), 33);
         assert_eq!(int4.packed_words(129), 17);
         assert!(SymmetricQuantization::new(3).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn reinterprets_signed_packed_words_without_numeric_conversion() -> Result<()> {
+        let stream = Device::gpu(0).new_stream()?;
+        let words = [u32::MAX, 1_u32 << 31];
+        let unsigned = Array::from_slice(&words, [2])?;
+        let signed = stream.graph().view_dtype(&unsigned, DType::Int32)?;
+        let unsigned = stream.graph().view_dtype(&signed, DType::Uint32)?;
+        assert_eq!(stream.read::<u32>(&unsigned)?, words);
         Ok(())
     }
 }
