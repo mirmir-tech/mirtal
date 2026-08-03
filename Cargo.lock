@@ -162,7 +162,7 @@ dependencies = [
 
 [[package]]
 name = "mirtal"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "cxx",
  "mirtal-macros",
@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "mirtal-macros"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -181,7 +181,7 @@ dependencies = [
 
 [[package]]
 name = "mirtal-sys"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "cxx",
  "cxx-build",
@@ -331,8 +331,8 @@ dependencies = [
 
 [[patch.unused]]
 name = "libmir"
-version = "0.3.0"
+version = "0.3.1"
 
 [[patch.unused]]
 name = "mircuda"
-version = "0.3.0"
+version = "0.3.1"

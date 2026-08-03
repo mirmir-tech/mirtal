@@ -133,6 +133,10 @@ rust::Vec<std::int32_t> array_shape(const Array& array) {
 std::uint8_t array_dtype(const Array& array) { return dtype(array.value.dtype()); }
 std::size_t array_len(const Array& array) noexcept { return array.value.size(); }
 void array_eval(const Array& array) { mx::async_eval(array.value); }
+void array_detach(const Array& array) {
+  auto& value = const_cast<mx::array&>(array.value);
+  value.detach();
+}
 void array_copy_f32(const Array& array, const Stream& stream, rust::Slice<float> output) {
   copy(array, stream, output, mx::float32);
 }
@@ -220,6 +224,9 @@ std::shared_ptr<Array> view_dtype(
   return input.value.dtype() == dtype(target)
       ? wrap(input.value)
       : wrap(mx::view(input.value, dtype(target), stream.value));
+}
+std::shared_ptr<Array> contiguous(const Array& input, const Stream& stream) {
+  return wrap(mx::contiguous(input.value, false, stream.value));
 }
 std::shared_ptr<Array> reshape(
     const Array& input,

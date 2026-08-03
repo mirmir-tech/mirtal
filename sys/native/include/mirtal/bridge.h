@@ -98,6 +98,7 @@ std::size_t array_native_handle(const Array& array) noexcept;
 rust::Vec<std::int32_t> array_shape(const Array& array);
 std::uint8_t array_dtype(const Array& array);
 std::size_t array_len(const Array& array) noexcept;
+void array_detach(const Array& array);
 void array_eval(const Array& array);
 void array_copy_f32(
     const Array& array,
@@ -148,6 +149,7 @@ std::shared_ptr<Array> view_dtype(
     const Array& input,
     std::uint8_t dtype,
     const Stream& stream);
+std::shared_ptr<Array> contiguous(const Array& input, const Stream& stream);
 std::shared_ptr<Array> reshape(
     const Array& input,
     rust::Slice<const std::int32_t> shape,

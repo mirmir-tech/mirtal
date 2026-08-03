@@ -21,7 +21,7 @@ execution without exposing C++ ownership or depending on a Python runtime.
 
 ```toml
 [dependencies]
-mirtal = "0.3.0"
+mirtal = "0.3.1"
 ```
 
 Mirtal currently targets Apple Silicon on macOS. Building requires full Xcode,

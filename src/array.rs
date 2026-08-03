@@ -82,6 +82,13 @@ impl Array {
         Ok(ffi::array_eval(self.native()?)?)
     }
 
+    /// Retains evaluated storage while releasing the lazy graph that produced it.
+    ///
+    /// The caller must ensure evaluation has completed before detaching the graph.
+    pub fn detach_graph(&self) -> Result<()> {
+        Ok(ffi::array_detach(self.native()?)?)
+    }
+
     /// Evaluates the array and copies its values to the host as `f32`.
     pub fn to_vec_f32(&self) -> Result<Vec<f32>> {
         let mut output = vec![0.0; self.len()];

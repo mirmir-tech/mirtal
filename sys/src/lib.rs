@@ -49,6 +49,7 @@ pub mod ffi {
         fn array_dtype(array: &Array) -> Result<u8>;
         fn array_len(array: &Array) -> usize;
         fn array_eval(array: &Array) -> Result<()>;
+        fn array_detach(array: &Array) -> Result<()>;
         fn array_copy_f32(array: &Array, stream: &Stream, output: &mut [f32]) -> Result<()>;
         fn array_copy_u32(array: &Array, stream: &Stream, output: &mut [u32]) -> Result<()>;
 
@@ -69,6 +70,7 @@ pub mod ffi {
         fn from_fp8(input: &Array, dtype: u8, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn to_fp8(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn view_dtype(input: &Array, dtype: u8, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn contiguous(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn reshape(input: &Array, shape: &[i32], stream: &Stream) -> Result<SharedPtr<Array>>;
         fn transpose(input: &Array, axes: &[i32], stream: &Stream) -> Result<SharedPtr<Array>>;
         fn expand_dims(input: &Array, axes: &[i32], stream: &Stream) -> Result<SharedPtr<Array>>;

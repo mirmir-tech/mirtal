@@ -98,6 +98,11 @@ impl<'stream> Graph<'stream> {
         )
     }
 
+    /// Materializes `input` into row-contiguous device storage.
+    pub fn contiguous(self, input: &Array) -> Result<Array> {
+        Array::from_raw(ffi::contiguous(input.native()?, self.native()?)?, "contiguous")
+    }
+
     /// Returns a view of `input` with a new shape.
     pub fn reshape(self, input: &Array, shape: &Shape) -> Result<Array> {
         Array::from_raw(ffi::reshape(input.native()?, &shape.native()?, self.native()?)?, "reshape")

@@ -54,6 +54,20 @@ fn builds_and_evaluates_a_graph_on_an_explicit_stream() -> Result<()> {
 }
 
 #[test]
+fn reuses_storage_after_detaching_an_evaluated_graph() -> Result<()> {
+    let stream = Device::gpu(0).new_stream()?;
+    let input = Array::from_slice(&[1.0_f32, 2.0], [2])?;
+    let output = stream.graph().add(&input, &input)?;
+    output.async_eval()?;
+    stream.synchronize()?;
+    output.detach_graph()?;
+
+    let next = stream.graph().add(&output, &input)?;
+    assert_eq!(stream.read::<f32>(&next)?, vec![3.0, 6.0]);
+    Ok(())
+}
+
+#[test]
 fn reuses_a_prepared_metal_launch_with_new_inputs() -> Result<()> {
     let stream = Device::gpu(0).new_stream()?;
     let output = [OutputSpec::new(Shape::new([2])?, DType::Float32)];
