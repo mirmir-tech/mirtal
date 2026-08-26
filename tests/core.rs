@@ -58,9 +58,9 @@ fn reuses_storage_after_detaching_an_evaluated_graph() -> Result<()> {
     let stream = Device::gpu(0).new_stream()?;
     let input = Array::from_slice(&[1.0_f32, 2.0], [2])?;
     let output = stream.graph().add(&input, &input)?;
-    output.async_eval()?;
+    stream.eval(&output)?;
     stream.synchronize()?;
-    output.detach_graph()?;
+    stream.detach_graph(&output)?;
 
     let next = stream.graph().add(&output, &input)?;
     assert_eq!(stream.read::<f32>(&next)?, vec![3.0, 6.0]);

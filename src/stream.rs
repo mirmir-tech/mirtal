@@ -40,6 +40,14 @@ impl Stream {
         Ok(ffi::array_eval(array.native()?)?)
     }
 
+    /// Retains evaluated storage while releasing the lazy graph that produced it.
+    ///
+    /// Call [`Self::synchronize`] before detaching when subsequent work must not
+    /// observe the lazy graph.
+    pub fn detach_graph(&self, array: &Array) -> Result<()> {
+        Ok(ffi::array_detach(array.native()?)?)
+    }
+
     /// Waits until all work submitted to this stream has completed.
     pub fn synchronize(&self) -> Result<()> {
         Ok(ffi::synchronize(self.native()?)?)

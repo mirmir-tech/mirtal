@@ -75,7 +75,7 @@ fn measure_sync(
     let started = Instant::now();
     for _ in 0..ITERATIONS {
         let [output] = launch()?;
-        output.async_eval()?;
+        stream.eval(&output)?;
         stream.synchronize()?;
         black_box(output);
     }

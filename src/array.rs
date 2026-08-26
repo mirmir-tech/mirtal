@@ -76,30 +76,6 @@ impl Array {
         let path = path.to_str().ok_or_else(|| Error::InvalidPath(path.to_path_buf()))?;
         Ok(mirtal_sys::graph::ffi::export_graph_dot(self.native()?, path)?)
     }
-
-    /// Schedules evaluation without waiting for completion.
-    pub fn async_eval(&self) -> Result<()> {
-        Ok(ffi::array_eval(self.native()?)?)
-    }
-
-    /// Retains evaluated storage while releasing the lazy graph that produced it.
-    ///
-    /// The caller must ensure evaluation has completed before detaching the graph.
-    pub fn detach_graph(&self) -> Result<()> {
-        Ok(ffi::array_detach(self.native()?)?)
-    }
-
-    /// Evaluates the array and copies its values to the host as `f32`.
-    pub fn to_vec_f32(&self) -> Result<Vec<f32>> {
-        let mut output = vec![0.0; self.len()];
-        mirtal_sys::read::ffi::array_read_f32(self.native()?, &mut output)?;
-        Ok(output)
-    }
-
-    /// Evaluates a scalar array and copies its value to the host as `u32`.
-    pub fn item_u32(&self) -> Result<u32> {
-        Ok(mirtal_sys::read::ffi::array_read_u32_scalar(self.native()?)?)
-    }
 }
 
 impl fmt::Debug for Array {
