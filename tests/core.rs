@@ -205,7 +205,7 @@ fn rejects_metal_dispatch_with_an_undeclared_dtype() -> Result<()> {
 
 #[test]
 fn reports_native_version_and_allocator_state() -> Result<()> {
-    assert!(!mirtal::version()?.is_empty());
+    assert_ne!(mirtal::version()?, "");
     let stats = mirtal::memory::stats()?;
     assert!(stats.limit > 0);
     Ok(())
