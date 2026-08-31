@@ -40,6 +40,26 @@ impl Stream {
         Ok(ffi::array_eval(array.native()?)?)
     }
 
+    /// Schedules a set of lazy graph roots as one MLX evaluation.
+    ///
+    /// MLX retains the evaluated storage of every root independently, so later
+    /// graphs may be constructed from those roots without retaining their
+    /// producing graph.
+    pub fn eval_many(&self, arrays: &[&Array]) -> Result<()> {
+        if arrays.is_empty() {
+            return Ok(());
+        }
+        if let [array] = arrays {
+            return self.eval(array);
+        }
+        let mut native = ffi::new_arrays();
+        for array in arrays {
+            ffi::arrays_push(native.pin_mut(), array.native()?);
+        }
+        let native = native.as_ref().ok_or(Error::NullHandle("arrays"))?;
+        Ok(ffi::arrays_eval(native)?)
+    }
+
     /// Retains evaluated storage while releasing the lazy graph that produced it.
     ///
     /// Call [`Self::synchronize`] before detaching when subsequent work must not

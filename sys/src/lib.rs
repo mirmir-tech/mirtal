@@ -49,6 +49,7 @@ pub mod ffi {
         fn array_dtype(array: &Array) -> Result<u8>;
         fn array_len(array: &Array) -> usize;
         fn array_eval(array: &Array) -> Result<()>;
+        fn arrays_eval(arrays: &Arrays) -> Result<()>;
         fn array_detach(array: &Array) -> Result<()>;
         fn array_copy_f32(array: &Array, stream: &Stream, output: &mut [f32]) -> Result<()>;
         fn array_copy_u32(array: &Array, stream: &Stream, output: &mut [u32]) -> Result<()>;
@@ -91,6 +92,23 @@ pub mod ffi {
             stream: &Stream,
         ) -> Result<UniquePtr<Arrays>>;
         fn quantize_mxfp8(input: &Array, stream: &Stream) -> Result<UniquePtr<Arrays>>;
+        fn quantize_mxfp4(input: &Array, stream: &Stream) -> Result<UniquePtr<Arrays>>;
+        fn mxfp4_matmul(
+            input: &Array,
+            weight: &Array,
+            scales: &Array,
+            transpose: bool,
+            stream: &Stream,
+        ) -> Result<SharedPtr<Array>>;
+        fn gather_mxfp4(
+            input: &Array,
+            weight: &Array,
+            scales: &Array,
+            rhs_indices: &Array,
+            transpose: bool,
+            sorted_indices: bool,
+            stream: &Stream,
+        ) -> Result<SharedPtr<Array>>;
         fn mxfp8_matmul(
             input: &Array,
             weight: &Array,

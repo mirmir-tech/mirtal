@@ -30,6 +30,58 @@ std::unique_ptr<Arrays> quantize_mxfp8(
   return std::make_unique<Arrays>(std::move(values), &stream);
 }
 
+std::unique_ptr<Arrays> quantize_mxfp4(
+    const Array& input,
+    const Stream& stream) {
+  auto values = mx::quantize(
+      input.value, 32, 4, "mxfp4", std::nullopt, stream.value);
+  if (values.size() != 2) {
+    throw std::runtime_error("MXFP4 quantize did not return weight/scales");
+  }
+  return std::make_unique<Arrays>(std::move(values), &stream);
+}
+
+std::shared_ptr<Array> mxfp4_matmul(
+    const Array& input,
+    const Array& weight,
+    const Array& scales,
+    bool transpose,
+    const Stream& stream) {
+  return std::make_shared<Array>(mx::quantized_matmul(
+      input.value,
+      weight.value,
+      scales.value,
+      std::nullopt,
+      transpose,
+      32,
+      4,
+      "mxfp4",
+      stream.value));
+}
+
+std::shared_ptr<Array> gather_mxfp4(
+    const Array& input,
+    const Array& weight,
+    const Array& scales,
+    const Array& rhs_indices,
+    bool transpose,
+    bool sorted_indices,
+    const Stream& stream) {
+  return std::make_shared<Array>(mx::gather_qmm(
+      input.value,
+      weight.value,
+      scales.value,
+      std::nullopt,
+      std::nullopt,
+      rhs_indices.value,
+      transpose,
+      32,
+      4,
+      "mxfp4",
+      sorted_indices,
+      stream.value));
+}
+
 std::shared_ptr<Array> mxfp8_matmul(
     const Array& input,
     const Array& weight,

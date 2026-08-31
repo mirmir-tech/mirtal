@@ -134,6 +134,39 @@ fn executes_native_mxfp8_without_affine_biases() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn executes_native_mxfp4_matmul_and_gather() -> Result<()> {
+    let stream = Device::gpu(0).new_stream()?;
+    let graph = stream.graph();
+    let values = (0_u8..64).map(|index| (f32::from(index) - 31.5) / 8.0).collect::<Vec<_>>();
+    let dense = Array::from_slice(&values, [2, 32])?;
+    let quantized = graph.quantize_mxfp4(&dense)?;
+    let input = Array::from_slice(&[1.0_f32; 32], [1, 32])?;
+    let output = graph.mxfp4_matmul(&input, quantized.as_ref(), true)?;
+
+    assert_eq!(quantized.weight.dtype()?, DType::Uint32);
+    assert_eq!(quantized.weight.shape()?.dimensions(), &[2, 4]);
+    assert_eq!(quantized.scales.shape()?.dimensions(), &[2, 1]);
+    let output = stream.read::<f32>(&output)?;
+    assert_eq!(output.len(), 2);
+    assert!(output.iter().all(|value| value.is_finite()));
+
+    let bank_values = values.repeat(2);
+    let bank = graph.quantize_mxfp4(&Array::from_slice(&bank_values, [2, 2, 32])?)?;
+    let inputs = Array::from_slice(&[1.0_f32; 64], [1, 1, 2, 1, 32])?;
+    let indices = Array::from_slice(&[0_u32, 1], [1, 1, 2])?;
+    let selected = graph.gather_mxfp4(
+        &inputs,
+        bank.as_ref(),
+        &indices,
+        GatherQmmOptions { transpose: true, sorted_indices: false },
+    )?;
+    let selected = stream.read::<f32>(&selected)?;
+    assert_eq!(selected.len(), 4);
+    assert!(selected.iter().all(|value| value.is_finite()));
+    Ok(())
+}
+
 fn unpack(words: &[u32], index: usize, bits: usize) -> Result<u32> {
     let bit = index * bits;
     let word = bit / 32;

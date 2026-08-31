@@ -2,8 +2,10 @@ use mirtal_sys::ffi;
 
 use crate::{Array, Error, Graph, Result};
 
+mod mxfp4;
 mod mxfp8;
 
+pub use mxfp4::{MxFp4, MxFp4Arrays};
 pub use mxfp8::{MxFp8, MxFp8Arrays};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

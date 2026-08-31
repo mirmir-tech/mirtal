@@ -133,6 +133,7 @@ rust::Vec<std::int32_t> array_shape(const Array& array) {
 std::uint8_t array_dtype(const Array& array) { return dtype(array.value.dtype()); }
 std::size_t array_len(const Array& array) noexcept { return array.value.size(); }
 void array_eval(const Array& array) { mx::async_eval(array.value); }
+void arrays_eval(const Arrays& arrays) { mx::async_eval(arrays.values); }
 void array_detach(const Array& array) {
   auto& value = const_cast<mx::array&>(array.value);
   value.detach();

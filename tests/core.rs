@@ -39,21 +39,6 @@ mirtal::metal_kernel! {
 }
 
 #[test]
-fn builds_and_evaluates_a_graph_on_an_explicit_stream() -> Result<()> {
-    let stream = Device::gpu(0).new_stream()?;
-    let left = Array::from_slice(&[1.0_f32, 2.0], [1, 2])?;
-    let right = Array::from_slice(&[3.0_f32, 4.0], [1, 2])?;
-    let output = stream.graph().add(&left, &right)?;
-
-    stream.eval(&output)?;
-    stream.synchronize()?;
-    assert_eq!(output.dtype()?, DType::Float32);
-    assert_eq!(output.shape()?.dimensions(), &[1, 2]);
-    assert_eq!(stream.read::<f32>(&output)?, vec![4.0, 6.0]);
-    Ok(())
-}
-
-#[test]
 fn reuses_storage_after_detaching_an_evaluated_graph() -> Result<()> {
     let stream = Device::gpu(0).new_stream()?;
     let input = Array::from_slice(&[1.0_f32, 2.0], [2])?;

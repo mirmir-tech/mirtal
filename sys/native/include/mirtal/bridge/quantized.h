@@ -18,6 +18,23 @@ std::unique_ptr<Arrays> quantize(
 std::unique_ptr<Arrays> quantize_mxfp8(
     const Array& input,
     const Stream& stream);
+std::unique_ptr<Arrays> quantize_mxfp4(
+    const Array& input,
+    const Stream& stream);
+std::shared_ptr<Array> mxfp4_matmul(
+    const Array& input,
+    const Array& weight,
+    const Array& scales,
+    bool transpose,
+    const Stream& stream);
+std::shared_ptr<Array> gather_mxfp4(
+    const Array& input,
+    const Array& weight,
+    const Array& scales,
+    const Array& rhs_indices,
+    bool transpose,
+    bool sorted_indices,
+    const Stream& stream);
 std::shared_ptr<Array> mxfp8_matmul(
     const Array& input,
     const Array& weight,

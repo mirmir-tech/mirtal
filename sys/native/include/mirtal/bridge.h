@@ -100,6 +100,7 @@ std::uint8_t array_dtype(const Array& array);
 std::size_t array_len(const Array& array) noexcept;
 void array_detach(const Array& array);
 void array_eval(const Array& array);
+void arrays_eval(const Arrays& arrays);
 void array_copy_f32(
     const Array& array,
     const Stream& stream,
