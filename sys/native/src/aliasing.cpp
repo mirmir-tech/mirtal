@@ -1,4 +1,5 @@
 #include "mirtal/bridge.h"
+#include "mirtal/bridge/input_bindings.h"
 
 #include "mlx/backend/metal/device.h"
 #include "mlx/primitives.h"
@@ -178,6 +179,7 @@ std::unique_ptr<AliasingPlan> new_aliasing_plan(
 
 void aliasing_plan_set_input(AliasingPlan& plan, std::size_t index, const Array& input) {
   auto& values = plan.implementation->inputs;
+  if (index == 0) values.clear();
   if (index > values.size() || index >= plan.implementation->input_arity) {
     throw std::runtime_error("prepared aliasing input index is out of bounds");
   }
@@ -199,6 +201,7 @@ std::unique_ptr<Arrays> aliasing_plan_dispatch(
     std::uint32_t tz,
     const Stream& stream) {
   auto& implementation = *plan.implementation;
+  InputBindingsScope release_inputs(implementation.inputs);
   if (implementation.inputs.size() != implementation.input_arity ||
       constants.size() != implementation.constant_arity) {
     throw std::runtime_error("prepared aliasing dispatch arity changed");

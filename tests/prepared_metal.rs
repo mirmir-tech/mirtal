@@ -6,6 +6,35 @@ const BUILD_ITERATIONS: usize = 1_000;
 const ITERATIONS: usize = 100;
 const SAMPLES: usize = 7;
 
+#[test]
+fn prepared_metal_does_not_retain_completed_input_arrays() -> Result<()> {
+    const ELEMENTS: usize = 1024 * 1024;
+    let stream = Device::gpu(0).new_stream()?;
+    let kernel = sum_three()?;
+    let outputs = [OutputSpec::new(Shape::new([ELEMENTS])?, DType::Float32)];
+    let dispatch = Dispatch::new([ELEMENTS, 1, 1], [256, 1, 1])
+        .templates([TemplateArg::dtype("T", DType::Float32), TemplateArg::int("WIDTH", 2)]);
+    let mut prepared = kernel.prepare(&outputs, &dispatch)?;
+    let baseline = mirtal::memory::stats()?.active;
+    let output = {
+        let input = Array::from_slice(&vec![1.0_f32; ELEMENTS], [ELEMENTS])?;
+        let [output] = prepared.dispatch(&stream, [&input, &input, &input])?;
+        output
+    };
+    assert!(
+        stream
+            .read::<f32>(&output)?
+            .iter()
+            .all(|value| (*value - 6.0).abs() < f32::EPSILON)
+    );
+    drop(output);
+    stream.synchronize()?;
+    mirtal::memory::clear_cache()?;
+    assert!(mirtal::memory::stats()?.active <= baseline + 1024 * 1024);
+    black_box(&prepared);
+    Ok(())
+}
+
 mirtal::metal_kernel! {
     fn sum_three {
         name: "mirtal_bench_sum_three",

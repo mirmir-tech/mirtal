@@ -58,3 +58,50 @@ fn prepares_static_aliasing_state_and_reuses_native_inputs() -> Result<()> {
     assert_eq!(stream.read::<f32>(&rebound)?, vec![11.0, 13.0]);
     Ok(())
 }
+
+#[test]
+fn prepared_plan_releases_buffers_but_lazy_outputs_keep_their_inputs() -> Result<()> {
+    const ELEMENTS: usize = 4 * 1024 * 1024;
+    let stream = Device::gpu(0).new_stream()?;
+    let mut prepared: PreparedAliasing<2, 1> =
+        copy_library()?.export("copy_f32")?.prepare_aliasing(
+            AliasingDispatch::new([1]).grid([ELEMENTS, 1, 1]).threadgroup([256, 1, 1]),
+        )?;
+    let baseline = mirtal::memory::stats()?.active;
+    let output = {
+        let input = Array::from_slice(&vec![3.0_f32; ELEMENTS], [ELEMENTS])?;
+        let target = Array::from_slice(&vec![0.0_f32; ELEMENTS], [ELEMENTS])?;
+        let [output] = prepared.dispatch(&stream, [&input, &target])?;
+        output
+    };
+    // Rebinding before evaluation must not change the first lazy graph.
+    let input = Array::from_slice(&[7.0_f32], [1])?;
+    let target = Array::from_slice(&[0.0_f32], [1])?;
+    prepared.rebind(&[], [1, 1, 1], [1, 1, 1])?;
+    let [second] = prepared.dispatch(&stream, [&input, &target])?;
+    assert_eq!(stream.read::<f32>(&second)?, [7.0]);
+    assert!(
+        stream
+            .read::<f32>(&output)?
+            .iter()
+            .all(|value| (*value - 3.0).abs() < f32::EPSILON)
+    );
+    drop(output);
+    drop(second);
+    drop(input);
+    drop(target);
+    // Exercise the last binding too: no later rebind may be needed to free it.
+    prepared.rebind(&[], [ELEMENTS, 1, 1], [256, 1, 1])?;
+    {
+        let input = Array::from_slice(&vec![1.0_f32; ELEMENTS], [ELEMENTS])?;
+        let target = Array::from_slice(&vec![0.0_f32; ELEMENTS], [ELEMENTS])?;
+        let [output] = prepared.dispatch(&stream, [&input, &target])?;
+        stream.eval(&output)?;
+        stream.synchronize()?;
+    }
+    stream.synchronize()?;
+    mirtal::memory::clear_cache()?;
+    assert!(mirtal::memory::stats()?.active <= baseline + 1024 * 1024);
+    std::hint::black_box(&prepared);
+    Ok(())
+}

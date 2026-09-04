@@ -1,4 +1,5 @@
 #include "mirtal/bridge.h"
+#include "mirtal/bridge/input_bindings.h"
 
 #include <memory>
 #include <stdexcept>
@@ -35,6 +36,7 @@ std::unique_ptr<PreparedMetal> new_prepared_metal(
 void prepared_metal_set_input(PreparedMetal& prepared, std::size_t index, const Array& input) {
   auto& implementation = *prepared.implementation;
   auto& values = implementation.inputs;
+  if (index == 0) values.clear();
   if (index > values.size() || index >= implementation.kernel.inputs) {
     throw std::runtime_error("prepared Metal input index is out of bounds");
   }
@@ -50,6 +52,7 @@ std::unique_ptr<Arrays> prepared_metal_dispatch(
     const Stream& stream) {
   auto& implementation = *prepared.implementation;
   auto& kernel = implementation.kernel;
+  InputBindingsScope release_inputs(implementation.inputs);
   auto& launch = implementation.launch;
   if (implementation.inputs.size() != kernel.inputs) {
     throw std::runtime_error("prepared Metal dispatch input arity changed");

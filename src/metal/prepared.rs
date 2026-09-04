@@ -44,6 +44,7 @@ impl<const INPUTS: usize, const OUTPUTS: usize> MetalKernel<INPUTS, OUTPUTS> {
 
 impl<const INPUTS: usize, const OUTPUTS: usize> PreparedMetalKernel<INPUTS, OUTPUTS> {
     /// Dispatches with new inputs using the cached launch specification.
+    /// The plan does not retain input arrays after the lazy outputs are built.
     pub fn dispatch(
         &mut self,
         stream: &Stream,

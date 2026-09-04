@@ -53,7 +53,8 @@ impl<const INPUTS: usize, const OUTPUTS: usize> PreparedAliasing<INPUTS, OUTPUTS
         self.dispatch.rebind(constants, grid, threadgroup)
     }
 
-    /// Dispatches the prepared plan and updates its cached input bindings.
+    /// Dispatches using reusable binding storage. Only the lazy output graph
+    /// retains the input arrays; the plan releases them after graph construction.
     pub fn dispatch(
         &mut self,
         stream: &Stream,
