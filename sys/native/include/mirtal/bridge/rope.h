@@ -20,4 +20,10 @@ std::shared_ptr<Array> rope_with_frequencies(
     const Array& frequencies,
     std::int32_t offset,
     const Stream& stream);
+std::shared_ptr<Array> rope_batched(
+    const Array& input,
+    const NativeRopeOptions& options,
+    const Array& offsets,
+    std::shared_ptr<Array> frequencies,
+    const Stream& stream);
 }  // namespace mirtal

@@ -30,12 +30,15 @@ impl<const INPUTS: usize, const OUTPUTS: usize> MetalKernel<INPUTS, OUTPUTS> {
         contract::validate_descriptor(&descriptor)?;
         let input_names = descriptor.input_names.join("\x1f");
         let output_names = descriptor.output_names.join("\x1f");
+        // Match build-time validation: MLX appends its generated template
+        // directly after the header. Terminate directives and line comments.
+        let header = format!("{}\n", descriptor.header.code());
         let raw = ffi::new_metal_kernel(
             descriptor.name,
             &input_names,
             &output_names,
             descriptor.source.code(),
-            descriptor.header.code(),
+            &header,
             descriptor.row_contiguous,
             descriptor.atomic_outputs,
         )?;

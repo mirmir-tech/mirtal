@@ -25,6 +25,12 @@ Mirmir model, runtime, protocol, cache, tokenizer, or server crates.
   entries. Relative paths are limited to crates owned by this workspace.
 - Do not commit or publish automatically without explicit authorization.
 - Keep CXX bridge declarations and every `unsafe` operation inside `mirtal-sys`.
+- `Array::allocation` observes only already available storage without evaluating
+  or synchronizing. Its safe `memory::Allocation` handle retains buffer ownership,
+  exposes allocator bytes, and deduplicates views through private identity.
+  Never expose the native address or replace allocation bytes with logical
+  tensor size. Retained allocation handles may prevent donation; keep them out
+  of ordinary execution loops and use them for ownership/accounting snapshots.
 - Native smart pointers may exist only in private implementation fields; public
   APIs use RAII and must not expose `cxx` types.
 - Every operation receives an explicit stream, directly or through `Graph`.
@@ -33,6 +39,10 @@ Mirmir model, runtime, protocol, cache, tokenizer, or server crates.
 - Macros generate typed Rust bindings; they must not conceal host transfers.
 - `metal_kernel!` must validate inline and file-backed MSL with Apple's Metal
   compiler during Rust compilation. Do not add unchecked convenience macros.
+- Normalize the custom-kernel header boundary with a terminating newline before
+  forwarding to MLX, matching macro validation. MLX concatenates generated code
+  directly after headers; a trailing directive or line comment must not absorb
+  the kernel declaration. Keep the runtime regression for both header forms.
 - `metal_library!` applies the same rule to complete MSL translation units.
   `MetalLibrary::export` exposes checked named functions. Buffer mutation uses
   generic `AliasingDispatch`; never add a model- or cache-specific CXX API.
@@ -61,9 +71,19 @@ Mirmir model, runtime, protocol, cache, tokenizer, or server crates.
 - Quantize, dequantize, QMM, GatherQMM, fast RoPE, and fast SDPA are legitimate
   thin MLX primitive bindings. Vocabulary gathering and frequency construction
   are not.
+- `GatherIndices` must preserve optional LHS/RHS semantics and native index
+  broadcasting. Legacy RHS-only methods pass no LHS selector; never synthesize
+  one for them. MLX 0.32.2 disables its sorted-RHS batching shortcut when an
+  explicit LHS selector is present. Forward the native hint faithfully and do
+  not assume that avoiding a caller-side gather preserves arithmetic or speed.
 - Mirtal owns ordinary scaled dot-product attention execution. Clients choose
   tensor layout, scale, mask policy, KV storage, and paged-attention strategy.
   Tensor masks and attention sinks are borrowed device arrays; never copy them
   through the host or allocate substitutes in a decode step.
 - `mirtal-macros` is re-exported by `mirtal` and is not a direct user dependency.
 - Run rustfmt, Clippy with all targets/features, tests, and check before completion.
+- Device-offset RoPE must preserve the leading batch axis: scalar-offset
+  `single_token_layout` folding would assign offsets to the wrong rows.
+  `RopeOptions` and `FrequencyRopeOptions` default to scalar `usize`; batched
+  calls take borrowed integer arrays. Keep explicit frequencies device-resident
+  and preserve MLX's scalar/one-element offset broadcasting without host reads.

@@ -74,6 +74,7 @@ struct MetalLaunch {
 };
 
 rust::String version();
+rust::String device_name(std::uint8_t kind, std::int32_t index);
 void clear_memory_cache();
 bool configure_recommended_wired_limit();
 std::size_t active_memory();

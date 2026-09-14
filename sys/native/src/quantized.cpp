@@ -1,4 +1,4 @@
-#include "mirtal-sys/src/lib.rs.h"
+#include "mirtal-sys/src/quantized.rs.h"
 
 #include <optional>
 #include <stdexcept>
@@ -63,7 +63,7 @@ std::shared_ptr<Array> gather_mxfp4(
     const Array& input,
     const Array& weight,
     const Array& scales,
-    const Array& rhs_indices,
+    const NativeGatherIndices& indices,
     bool transpose,
     bool sorted_indices,
     const Stream& stream) {
@@ -72,8 +72,8 @@ std::shared_ptr<Array> gather_mxfp4(
       weight.value,
       scales.value,
       std::nullopt,
-      std::nullopt,
-      rhs_indices.value,
+      indices.lhs ? std::optional<mx::array>{indices.lhs->value} : std::nullopt,
+      indices.rhs ? std::optional<mx::array>{indices.rhs->value} : std::nullopt,
       transpose,
       32,
       4,
@@ -140,7 +140,7 @@ std::shared_ptr<Array> gather_qmm(
     const Array& weight,
     const Array& scales,
     const Array& biases,
-    const Array& rhs_indices,
+    const NativeGatherIndices& indices,
     const QuantizationOptions& options,
     const Stream& stream) {
   return std::make_shared<Array>(mx::gather_qmm(
@@ -148,8 +148,8 @@ std::shared_ptr<Array> gather_qmm(
       weight.value,
       scales.value,
       biases.value,
-      std::nullopt,
-      rhs_indices.value,
+      indices.lhs ? std::optional<mx::array>{indices.lhs->value} : std::nullopt,
+      indices.rhs ? std::optional<mx::array>{indices.rhs->value} : std::nullopt,
       options.transpose,
       options.group_size,
       options.bits,

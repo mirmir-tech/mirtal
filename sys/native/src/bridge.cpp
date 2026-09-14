@@ -82,6 +82,14 @@ std::shared_ptr<Array> wrap(mx::array value) {
 }  // namespace
 
 rust::String version() { return rust::String(mx::version()); }
+rust::String device_name(std::uint8_t kind, std::int32_t index) {
+  if (kind > 1 || index < 0) throw std::runtime_error("invalid MLX device");
+  const auto type = kind == 0 ? mx::Device::cpu : mx::Device::gpu;
+  const auto& info = mx::device_info(mx::Device(type, index));
+  const auto value = info.find("device_name");
+  if (value == info.end()) throw std::runtime_error("MLX device name is unavailable");
+  return rust::String(std::get<std::string>(value->second));
+}
 void clear_memory_cache() { mx::clear_cache(); }
 bool configure_recommended_wired_limit() {
   auto bytes = recommended_working_set();

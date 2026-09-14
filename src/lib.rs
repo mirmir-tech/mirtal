@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 #![deny(missing_docs)]
 
+extern crate self as mirtal;
+
 mod array;
 mod attention;
 mod compile;
@@ -36,8 +38,8 @@ pub use metal::{
 };
 pub use mirtal_macros::{compiled, metal_kernel, metal_library};
 pub use quantized::{
-    GatherQmmOptions, MxFp4, MxFp4Arrays, MxFp8, MxFp8Arrays, Quantization, Quantized,
-    QuantizedArrays, SymmetricQuantization,
+    GatherIndices, GatherQmmOptions, MxFp4, MxFp4Arrays, MxFp4Matmul, MxFp4RowTile, MxFp8,
+    MxFp8Arrays, Quantization, Quantized, QuantizedArrays, SymmetricQuantization,
 };
 pub use rope::{FrequencyRopeOptions, RopeOptions};
 pub use shape::Shape;

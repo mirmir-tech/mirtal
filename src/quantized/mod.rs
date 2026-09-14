@@ -1,11 +1,14 @@
-use mirtal_sys::ffi;
+use mirtal_sys::{ffi, quantized::ffi as quantized_ffi};
+
+mod gather;
+pub use gather::GatherIndices;
 
 use crate::{Array, Error, Graph, Result};
 
 mod mxfp4;
 mod mxfp8;
 
-pub use mxfp4::{MxFp4, MxFp4Arrays};
+pub use mxfp4::{MxFp4, MxFp4Arrays, MxFp4Matmul, MxFp4RowTile};
 pub use mxfp8::{MxFp8, MxFp8Arrays};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -108,15 +111,20 @@ impl QuantizedArrays {
 pub struct GatherQmmOptions {
     /// Treats the quantized right-hand matrix as transposed.
     pub transpose: bool,
-    /// Indicates that `rhs_indices` is already sorted.
+    /// Native sorted-index hint. With implicit LHS, declares sorted RHS indices.
+    /// MLX may ignore this hint when both operands have explicit selectors.
     pub sorted_indices: bool,
 }
 
 impl Graph<'_> {
     /// Quantizes an array into affine-packed weights, scales, and biases.
     pub fn quantize(self, input: &Array, format: Quantization) -> Result<QuantizedArrays> {
-        let outputs =
-            ffi::quantize(input.native()?, format.group_size, format.bits, self.native()?)?;
+        let outputs = quantized_ffi::quantize(
+            input.native()?,
+            format.group_size,
+            format.bits,
+            self.native()?,
+        )?;
         let outputs = outputs.as_ref().ok_or(Error::NullHandle("quantized arrays"))?;
         let actual = ffi::arrays_len(outputs);
         if actual != 3 {
@@ -144,7 +152,7 @@ impl Graph<'_> {
         let format = quantized.format;
         let options = native_options(format, transpose, false);
         Array::from_raw(
-            ffi::quantized_matmul(
+            quantized_ffi::quantized_matmul(
                 input.native()?,
                 quantized.weight.native()?,
                 quantized.scales.native()?,
@@ -156,35 +164,11 @@ impl Graph<'_> {
         )
     }
 
-    /// Selects quantized matrices by index and multiplies them by `input`.
-    pub fn gather_qmm(
-        self,
-        input: &Array,
-        quantized: Quantized<'_>,
-        rhs_indices: &Array,
-        options: GatherQmmOptions,
-    ) -> Result<Array> {
-        let format = quantized.format;
-        let options = native_options(format, options.transpose, options.sorted_indices);
-        Array::from_raw(
-            ffi::gather_qmm(
-                input.native()?,
-                quantized.weight.native()?,
-                quantized.scales.native()?,
-                quantized.biases.native()?,
-                rhs_indices.native()?,
-                &options,
-                self.native()?,
-            )?,
-            "gather qmm",
-        )
-    }
-
     /// Reconstructs a floating-point array from affine-quantized components.
     pub fn dequantize(self, quantized: Quantized<'_>) -> Result<Array> {
         let options = native_options(quantized.format, false, false);
         Array::from_raw(
-            ffi::dequantize(
+            quantized_ffi::dequantize(
                 quantized.weight.native()?,
                 quantized.scales.native()?,
                 quantized.biases.native()?,
@@ -204,8 +188,8 @@ const fn native_options(
     format: Quantization,
     transpose: bool,
     sorted_indices: bool,
-) -> ffi::QuantizationOptions {
-    ffi::QuantizationOptions {
+) -> quantized_ffi::QuantizationOptions {
+    quantized_ffi::QuantizationOptions {
         group_size: format.group_size,
         bits: format.bits,
         transpose,

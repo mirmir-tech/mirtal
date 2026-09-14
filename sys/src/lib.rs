@@ -1,12 +1,6 @@
 #[allow(let_underscore_drop, clippy::must_use_candidate, clippy::panic)]
 #[cxx::bridge(namespace = "mirtal")]
 pub mod ffi {
-    struct QuantizationOptions {
-        group_size: i32,
-        bits: i32,
-        transpose: bool,
-        sorted_indices: bool,
-    }
     struct NativeRopeOptions {
         dimensions: i32,
         traditional: bool,
@@ -30,6 +24,7 @@ pub mod ffi {
         type MetalLaunch;
         type Stream;
         fn version() -> Result<String>;
+        fn device_name(kind: u8, index: i32) -> Result<String>;
         fn clear_memory_cache() -> Result<()>;
         fn configure_recommended_wired_limit() -> Result<bool>;
         fn active_memory() -> Result<usize>;
@@ -85,66 +80,6 @@ pub mod ffi {
         fn silu(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn tanh(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
 
-        fn quantize(
-            input: &Array,
-            group_size: i32,
-            bits: i32,
-            stream: &Stream,
-        ) -> Result<UniquePtr<Arrays>>;
-        fn quantize_mxfp8(input: &Array, stream: &Stream) -> Result<UniquePtr<Arrays>>;
-        fn quantize_mxfp4(input: &Array, stream: &Stream) -> Result<UniquePtr<Arrays>>;
-        fn mxfp4_matmul(
-            input: &Array,
-            weight: &Array,
-            scales: &Array,
-            transpose: bool,
-            stream: &Stream,
-        ) -> Result<SharedPtr<Array>>;
-        fn gather_mxfp4(
-            input: &Array,
-            weight: &Array,
-            scales: &Array,
-            rhs_indices: &Array,
-            transpose: bool,
-            sorted_indices: bool,
-            stream: &Stream,
-        ) -> Result<SharedPtr<Array>>;
-        fn mxfp8_matmul(
-            input: &Array,
-            weight: &Array,
-            scales: &Array,
-            transpose: bool,
-            stream: &Stream,
-        ) -> Result<SharedPtr<Array>>;
-        fn dequantize_mxfp8(
-            weight: &Array,
-            scales: &Array,
-            stream: &Stream,
-        ) -> Result<SharedPtr<Array>>;
-        fn quantized_matmul(
-            input: &Array,
-            weight: &Array,
-            scales: &Array,
-            biases: &Array,
-            options: &QuantizationOptions,
-            stream: &Stream,
-        ) -> Result<SharedPtr<Array>>;
-        fn gather_qmm(
-            input: &Array,
-            weight: &Array,
-            scales: &Array,
-            biases: &Array,
-            rhs_indices: &Array,
-            options: &QuantizationOptions,
-            stream: &Stream,
-        ) -> Result<SharedPtr<Array>>;
-        fn dequantize(
-            weight: &Array,
-            scales: &Array,
-            biases: &Array,
-            options: &QuantizationOptions,
-            stream: &Stream,
-        ) -> Result<SharedPtr<Array>>;
         fn item_u32(input: &Array, stream: &Stream) -> Result<u32>;
         fn sdpa(
             queries: &Array,
@@ -158,6 +93,13 @@ pub mod ffi {
         fn rope(
             input: &Array,
             options: &NativeRopeOptions,
+            stream: &Stream,
+        ) -> Result<SharedPtr<Array>>;
+        fn rope_batched(
+            input: &Array,
+            options: &NativeRopeOptions,
+            offsets: &Array,
+            frequencies: SharedPtr<Array>,
             stream: &Stream,
         ) -> Result<SharedPtr<Array>>;
         fn rope_with_frequencies(
@@ -240,9 +182,12 @@ pub mod aliasing;
 mod callback;
 pub mod graph;
 pub mod io;
+pub mod memory;
 pub mod ops;
 pub mod read;
 mod traits;
 
 pub(crate) use callback::invoke_graph;
 pub use callback::{GraphCallback, graph_callback};
+
+pub mod quantized;

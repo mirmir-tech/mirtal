@@ -1,4 +1,5 @@
 #include "mirtal-sys/src/lib.rs.h"
+#include "mlx/version.h"
 
 #include <optional>
 #include <stdexcept>
@@ -16,7 +17,11 @@ mx::array sdpa_impl(
     std::optional<mx::array> sinks,
     const mx::Stream& stream) {
   return mx::fast::scaled_dot_product_attention(
-      queries, keys, values, scale, mask_mode, mask, sinks, stream);
+      queries, keys, values, scale, mask_mode, mask, sinks,
+#if MLX_VERSION_NUMERIC >= 32002
+      false,
+#endif
+      stream);
 }
 }  // namespace
 

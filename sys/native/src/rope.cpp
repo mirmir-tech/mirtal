@@ -60,4 +60,21 @@ std::shared_ptr<Array> rope_with_frequencies(
       stream.value));
 }
 
+std::shared_ptr<Array> rope_batched(
+    const Array& input,
+    const NativeRopeOptions& options,
+    const Array& offsets,
+    std::shared_ptr<Array> frequencies,
+    const Stream& stream) {
+  return std::make_shared<Array>(mx::fast::rope(
+      input.value,
+      options.dimensions,
+      options.traditional,
+      options.has_base ? std::make_optional(options.base) : std::nullopt,
+      options.scale,
+      offsets.value,
+      frequencies ? std::make_optional(frequencies->value) : std::nullopt,
+      stream.value));
+}
+
 }  // namespace mirtal

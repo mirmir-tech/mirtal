@@ -8,6 +8,7 @@ namespace mirtal {
 struct Array;
 struct Arrays;
 struct QuantizationOptions;
+struct NativeGatherIndices;
 struct Stream;
 
 std::unique_ptr<Arrays> quantize(
@@ -31,7 +32,7 @@ std::shared_ptr<Array> gather_mxfp4(
     const Array& input,
     const Array& weight,
     const Array& scales,
-    const Array& rhs_indices,
+    const NativeGatherIndices& indices,
     bool transpose,
     bool sorted_indices,
     const Stream& stream);
@@ -57,7 +58,7 @@ std::shared_ptr<Array> gather_qmm(
     const Array& weight,
     const Array& scales,
     const Array& biases,
-    const Array& rhs_indices,
+    const NativeGatherIndices& indices,
     const QuantizationOptions& options,
     const Stream& stream);
 std::shared_ptr<Array> dequantize(

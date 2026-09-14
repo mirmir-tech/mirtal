@@ -34,6 +34,11 @@ impl Device {
         Stream::new(self)
     }
 
+    /// Reads the backend's device name without evaluating arrays or synchronizing.
+    pub fn name(self) -> Result<String> {
+        Ok(mirtal_sys::ffi::device_name(self.native_kind(), self.native_index()?)?)
+    }
+
     pub(crate) const fn native_kind(self) -> u8 {
         match self.kind {
             DeviceKind::Cpu => 0,

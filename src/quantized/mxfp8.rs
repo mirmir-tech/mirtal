@@ -1,4 +1,4 @@
-use mirtal_sys::ffi;
+use mirtal_sys::{ffi, quantized::ffi as quantized_ffi};
 
 use super::array;
 use crate::{Array, Error, Graph, Result};
@@ -35,7 +35,7 @@ impl MxFp8Arrays {
 impl Graph<'_> {
     /// Quantizes complete 32-value blocks into OCP MXFP8 storage.
     pub fn quantize_mxfp8(self, input: &Array) -> Result<MxFp8Arrays> {
-        let outputs = ffi::quantize_mxfp8(input.native()?, self.native()?)?;
+        let outputs = quantized_ffi::quantize_mxfp8(input.native()?, self.native()?)?;
         let outputs = outputs.as_ref().ok_or(Error::NullHandle("MXFP8 arrays"))?;
         let actual = ffi::arrays_len(outputs);
         if actual != 2 {
@@ -59,7 +59,7 @@ impl Graph<'_> {
         transpose: bool,
     ) -> Result<Array> {
         Array::from_raw(
-            ffi::mxfp8_matmul(
+            quantized_ffi::mxfp8_matmul(
                 input.native()?,
                 quantized.weight.native()?,
                 quantized.scales.native()?,
@@ -73,7 +73,7 @@ impl Graph<'_> {
     /// Reconstructs BF16 values from OCP MXFP8 components.
     pub fn dequantize_mxfp8(self, quantized: MxFp8<'_>) -> Result<Array> {
         Array::from_raw(
-            ffi::dequantize_mxfp8(
+            quantized_ffi::dequantize_mxfp8(
                 quantized.weight.native()?,
                 quantized.scales.native()?,
                 self.native()?,

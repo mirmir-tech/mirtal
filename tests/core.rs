@@ -13,7 +13,7 @@ mirtal::metal_kernel! {
             uint index = thread_position_in_grid.x;
             output[index] = input[index] * 2.0f;
         ",
-        header: inline "",
+        header: inline "// Deliberately no terminal newline",
         row_contiguous: true,
         atomic_outputs: false,
     }
@@ -32,7 +32,7 @@ mirtal::metal_kernel! {
         inputs: [input: f32],
         outputs: [output: f32],
         source: file "tests/kernels/double.metal",
-        header: inline "",
+        header: inline "#include <metal_simdgroup_matrix>",
         row_contiguous: true,
         atomic_outputs: false,
     }
@@ -154,7 +154,7 @@ fn converts_device_dtype_during_an_explicit_host_read() -> Result<()> {
 }
 
 #[test]
-fn launches_inline_and_included_metal_sources() -> Result<()> {
+fn launches_inline_and_included_sources_with_unterminated_headers() -> Result<()> {
     let stream = Device::gpu(0).new_stream()?;
     let input = Array::from_slice(&[2.0_f32, 3.0], [2])?;
     for kernel in [inline_double()?, included_double()?] {

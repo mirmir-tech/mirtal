@@ -20,6 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=native/include/mirtal/bridge/rope.h");
     println!("cargo:rerun-if-changed=native/include/mirtal/native.h");
     println!("cargo:rerun-if-changed=native/src/bridge.cpp");
+    println!("cargo:rerun-if-changed=native/src/attention.cpp");
     println!("cargo:rerun-if-changed=native/src/compile.cpp");
     println!("cargo:rerun-if-changed=native/src/metal.cpp");
     println!("cargo:rerun-if-changed=native/src/prepared_metal.cpp");
@@ -30,9 +31,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=native/src/quantized.cpp");
     println!("cargo:rerun-if-changed=native/src/read.cpp");
     println!("cargo:rerun-if-changed=native/src/rope.cpp");
+    println!("cargo:rerun-if-changed=native/src/memory.cpp");
     let prefix = mlx_prefix()?;
     let include = prefix.join("include");
     let library = prefix.join("lib");
+    println!("cargo:rerun-if-changed={}", include.join("mlx/version.h").display());
+    println!("cargo:rerun-if-changed={}", library.join("libmlx.dylib").display());
     require(&include.join("mlx/mlx.h"))?;
     require(&library.join("libmlx.dylib"))?;
     require(&library.join("mlx.metallib"))?;
@@ -40,9 +44,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         "src/lib.rs",
         "src/graph.rs",
         "src/io.rs",
+        "src/memory.rs",
         "src/ops.rs",
         "src/aliasing.rs",
         "src/read.rs",
+        "src/quantized.rs",
     ])
     .file("native/src/bridge.cpp")
     .file("native/src/attention.cpp")
@@ -51,6 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     .file("native/src/io.cpp")
     .file("native/src/metal.cpp")
     .file("native/src/prepared_metal.cpp")
+    .file("native/src/memory.cpp")
     .file("native/src/ops.cpp")
     .file("native/src/aliasing.cpp")
     .file("native/src/quantized.cpp")

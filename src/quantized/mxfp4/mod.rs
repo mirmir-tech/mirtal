@@ -1,7 +1,10 @@
-use mirtal_sys::ffi;
+use mirtal_sys::{ffi, quantized::ffi as quantized_ffi};
 
-use super::{GatherQmmOptions, array};
+use super::array;
 use crate::{Array, Error, Graph, Result};
+
+mod matmul;
+pub use matmul::{MxFp4Matmul, MxFp4RowTile};
 
 #[derive(Debug, Clone, Copy)]
 /// Borrowed arrays that form an OCP MXFP4 tensor.
@@ -35,7 +38,7 @@ impl MxFp4Arrays {
 impl Graph<'_> {
     /// Quantizes complete 32-value blocks into OCP MXFP4 storage.
     pub fn quantize_mxfp4(self, input: &Array) -> Result<MxFp4Arrays> {
-        let outputs = ffi::quantize_mxfp4(input.native()?, self.native()?)?;
+        let outputs = quantized_ffi::quantize_mxfp4(input.native()?, self.native()?)?;
         let outputs = outputs.as_ref().ok_or(Error::NullHandle("MXFP4 arrays"))?;
         let actual = ffi::arrays_len(outputs);
         if actual != 2 {
@@ -59,7 +62,7 @@ impl Graph<'_> {
         transpose: bool,
     ) -> Result<Array> {
         Array::from_raw(
-            ffi::mxfp4_matmul(
+            quantized_ffi::mxfp4_matmul(
                 input.native()?,
                 quantized.weight.native()?,
                 quantized.scales.native()?,
@@ -67,28 +70,6 @@ impl Graph<'_> {
                 self.native()?,
             )?,
             "MXFP4 matmul",
-        )
-    }
-
-    /// Selects OCP MXFP4 matrices by index and multiplies them by `input`.
-    pub fn gather_mxfp4(
-        self,
-        input: &Array,
-        quantized: MxFp4<'_>,
-        rhs_indices: &Array,
-        options: GatherQmmOptions,
-    ) -> Result<Array> {
-        Array::from_raw(
-            ffi::gather_mxfp4(
-                input.native()?,
-                quantized.weight.native()?,
-                quantized.scales.native()?,
-                rhs_indices.native()?,
-                options.transpose,
-                options.sorted_indices,
-                self.native()?,
-            )?,
-            "gather MXFP4",
         )
     }
 }

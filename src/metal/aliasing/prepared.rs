@@ -44,6 +44,7 @@ impl MetalFunction<'_, '_> {
 
 impl<const INPUTS: usize, const OUTPUTS: usize> PreparedAliasing<INPUTS, OUTPUTS> {
     /// Replaces constants and launch geometry while preserving binding arity.
+    /// Rejected updates leave the previous plan usable.
     pub fn rebind(
         &mut self,
         constants: &[u32],

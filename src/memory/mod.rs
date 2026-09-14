@@ -39,3 +39,6 @@ pub fn configure_recommended_wired_limit() -> Result<bool> {
 pub fn clear_cache() -> Result<()> {
     Ok(mirtal_sys::ffi::clear_memory_cache()?)
 }
+
+mod allocation;
+pub use allocation::Allocation;

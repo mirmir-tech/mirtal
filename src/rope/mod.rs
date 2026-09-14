@@ -1,10 +1,12 @@
 use mirtal_sys::ffi;
 
-use crate::{Array, Error, Graph, Result};
+use crate::{Array, Error, Graph, Result, Shape};
+
+mod batched;
 
 #[derive(Debug, Clone, Copy)]
 /// Parameters for rotary position encoding with generated frequencies.
-pub struct RopeOptions {
+pub struct RopeOptions<Offset = usize> {
     /// Number of trailing feature dimensions to rotate; must be positive and even.
     pub dimensions: usize,
     /// Whether to use the traditional pairing layout.
@@ -13,19 +15,19 @@ pub struct RopeOptions {
     pub base: Option<f32>,
     /// Positive multiplier applied to token positions.
     pub scale: f32,
-    /// Starting token-position offset.
-    pub offset: usize,
+    /// Starting position, or a device array of per-batch positions for batched `RoPE`.
+    pub offset: Offset,
 }
 
 #[derive(Debug, Clone, Copy)]
 /// Parameters for rotary position encoding with supplied frequencies.
-pub struct FrequencyRopeOptions {
+pub struct FrequencyRopeOptions<Offset = usize> {
     /// Number of trailing feature dimensions to rotate; must be positive and even.
     pub dimensions: usize,
     /// Whether to use the traditional pairing layout.
     pub traditional: bool,
-    /// Starting token-position offset.
-    pub offset: usize,
+    /// Starting position, or a device array of per-batch positions for batched `RoPE`.
+    pub offset: Offset,
 }
 
 impl Graph<'_> {
@@ -44,7 +46,10 @@ impl Graph<'_> {
             scale: options.scale,
             offset: i32::try_from(options.offset)?,
         };
-        Array::from_raw(ffi::rope(input.native()?, &native, self.native()?)?, "RoPE")
+        let normalized = single_token_layout(self, input)?;
+        let input = normalized.as_ref().map_or(input, |(array, _)| array);
+        let output = Array::from_raw(ffi::rope(input.native()?, &native, self.native()?)?, "RoPE")?;
+        restore_layout(self, output, normalized)
     }
 
     /// Applies rotary position encoding using a device-resident frequency array.
@@ -54,7 +59,9 @@ impl Graph<'_> {
         frequencies: &Array,
         options: FrequencyRopeOptions,
     ) -> Result<Array> {
-        Array::from_raw(
+        let normalized = single_token_layout(self, input)?;
+        let input = normalized.as_ref().map_or(input, |(array, _)| array);
+        let output = Array::from_raw(
             ffi::rope_with_frequencies(
                 input.native()?,
                 dimensions(options.dimensions)?,
@@ -64,7 +71,35 @@ impl Graph<'_> {
                 self.native()?,
             )?,
             "frequency RoPE",
-        )
+        )?;
+        restore_layout(self, output, normalized)
+    }
+}
+
+fn single_token_layout(graph: Graph<'_>, input: &Array) -> Result<Option<(Array, Shape)>> {
+    let shape = input.shape()?;
+    let dims = shape.dimensions();
+    if dims.len() < 3 || dims[0] <= 1 || dims[dims.len() - 2] != 1 {
+        return Ok(None);
+    }
+    // Scalar offsets are shared by all leading axes. Fold them into heads so
+    // MLX 0.31.2's single-token kernel (fixed upstream in #3498) visits every row.
+    // This is a lazy layout change, without host reads or per-row launches.
+    let heads = dims[..dims.len() - 2]
+        .iter()
+        .try_fold(1_usize, |count, dim| count.checked_mul(*dim).ok_or(Error::ShapeOverflow))?;
+    let normalized = Shape::new([1, heads, 1, dims[dims.len() - 1]])?;
+    Ok(Some((graph.reshape(input, &normalized)?, shape)))
+}
+
+fn restore_layout(
+    graph: Graph<'_>,
+    output: Array,
+    normalized: Option<(Array, Shape)>,
+) -> Result<Array> {
+    match normalized {
+        Some((_, shape)) => graph.reshape(&output, &shape),
+        None => Ok(output),
     }
 }
 

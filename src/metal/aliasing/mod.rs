@@ -1,4 +1,6 @@
 mod prepared;
+#[cfg(test)]
+mod tests;
 
 use std::borrow::Cow;
 
@@ -81,6 +83,7 @@ impl AliasingDispatch {
     }
 
     /// Replaces constants and launch geometry without changing binding arity.
+    /// Invalid geometry or arity leaves the previous dispatch unchanged.
     pub fn rebind(
         &mut self,
         constants: &[u32],
@@ -90,6 +93,8 @@ impl AliasingDispatch {
         if constants.len() != self.constants.len() {
             return Err(Error::InvalidDispatch("rebound Metal constants changed arity".into()));
         }
+        native_grid(grid)?;
+        native_grid(threadgroup)?;
         self.constants.copy_from_slice(constants);
         self.grid = grid;
         self.threadgroup = threadgroup;
@@ -188,7 +193,8 @@ impl MetalFunction<'_, '_> {
 }
 
 pub(super) fn validate(input_arity: usize, dispatch: &AliasingDispatch) -> Result<()> {
-    let dimensions = dispatch.grid.iter().chain(&dispatch.threadgroup);
+    native_grid(dispatch.grid)?;
+    native_grid(dispatch.threadgroup)?;
     if input_arity == 0
         || dispatch.output_aliases.is_empty()
         || dispatch
@@ -200,7 +206,6 @@ pub(super) fn validate(input_arity: usize, dispatch: &AliasingDispatch) -> Resul
             .iter()
             .any(|index| usize::try_from(*index).map_or(true, |index| index >= input_arity))
         || dispatch.stride_inputs.len() != dispatch.stride_axes.len()
-        || dimensions.into_iter().any(|value| *value == 0)
     {
         return Err(Error::InvalidDispatch("invalid aliasing Metal dispatch".into()));
     }
@@ -208,6 +213,9 @@ pub(super) fn validate(input_arity: usize, dispatch: &AliasingDispatch) -> Resul
 }
 
 pub(super) fn native_grid(values: [usize; 3]) -> Result<[u32; 3]> {
+    if values.contains(&0) {
+        return Err(Error::InvalidDispatch("Metal launch dimensions must be positive".into()));
+    }
     Ok([u32::try_from(values[0])?, u32::try_from(values[1])?, u32::try_from(values[2])?])
 }
 
