@@ -1,4 +1,5 @@
 #include "mirtal-sys/src/quantized.rs.h"
+#include "mlx/version.h"
 
 #include <optional>
 #include <stdexcept>
@@ -78,6 +79,9 @@ std::shared_ptr<Array> gather_mxfp4(
       32,
       4,
       "mxfp4",
+#if MLX_VERSION_NUMERIC >= 32003
+      std::nullopt,
+#endif
       sorted_indices,
       stream.value));
 }
@@ -154,6 +158,9 @@ std::shared_ptr<Array> gather_qmm(
       options.group_size,
       options.bits,
       "affine",
+#if MLX_VERSION_NUMERIC >= 32003
+      std::nullopt,
+#endif
       options.sorted_indices,
       stream.value));
 }
