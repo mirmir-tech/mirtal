@@ -40,6 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     require(&include.join("mlx/mlx.h"))?;
     require(&library.join("libmlx.dylib"))?;
     require(&library.join("mlx.metallib"))?;
+    require_version(&include.join("mlx/version.h"))?;
     cxx_build::bridges([
         "src/lib.rs",
         "src/graph.rs",
@@ -96,4 +97,32 @@ fn require(path: &Path) -> Result<(), Box<dyn Error>> {
     path.exists()
         .then_some(())
         .ok_or_else(|| format!("required MLX path does not exist: {}", path.display()).into())
+}
+
+/// The oldest MLX whose headers the bridge compiles against: 0.32.4 made
+/// `allocator::Buffer` data an accessor (`Data::buffer()`).
+const MINIMUM_MLX: (u32, u32, u32) = (0, 32, 4);
+
+fn require_version(header: &Path) -> Result<(), Box<dyn Error>> {
+    let text = std::fs::read_to_string(header)?;
+    let component = |name: &str| -> Result<u32, Box<dyn Error>> {
+        let prefix = format!("#define MLX_VERSION_{name} ");
+        let value = text
+            .lines()
+            .find_map(|line| line.strip_prefix(prefix.as_str()))
+            .ok_or_else(|| format!("{} does not define MLX_VERSION_{name}", header.display()))?;
+        Ok(value.trim().parse()?)
+    };
+    let found = (component("MAJOR")?, component("MINOR")?, component("PATCH")?);
+    if found < MINIMUM_MLX {
+        let (major, minor, patch) = found;
+        let (want_major, want_minor, want_patch) = MINIMUM_MLX;
+        return Err(format!(
+            "MLX {major}.{minor}.{patch} at {} is too old; mirtal needs MLX \
+             {want_major}.{want_minor}.{want_patch} or later (set MLX_PREFIX)",
+            header.display()
+        )
+        .into());
+    }
+    Ok(())
 }
