@@ -21,11 +21,12 @@ execution without exposing C++ ownership or depending on a Python runtime.
 
 ```toml
 [dependencies]
-mirtal = "0.5.5"
+mirtal = "0.6.0"
 ```
 
 Mirtal currently targets Apple Silicon on macOS. Building requires full Xcode,
-the Metal toolchain component, and native MLX 0.32.3. Set `MLX_PREFIX` to
+the Metal toolchain component, and native MLX 0.32.4 or later (the build
+checks `mlx/version.h`). Set `MLX_PREFIX` to
 the native installation prefix; Python is not required. Consumers should depend on
 `mirtal`, not its private `mirtal-sys` or `mirtal-macros` implementation crates.
 
