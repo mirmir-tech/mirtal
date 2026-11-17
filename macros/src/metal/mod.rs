@@ -83,6 +83,21 @@ impl Source {
                 origin: "<inline metal macro>".into(),
             }),
             Self::File(value) => resolve_file(value),
+            Self::Files(values) => {
+                let files = values.iter().map(resolve_file).collect::<syn::Result<Vec<_>>>()?;
+                let code = files.iter().fold(String::new(), |mut code, file| {
+                    code.push_str(&file.code);
+                    code.push('\n');
+                    code
+                });
+                let parts = files.iter().map(|file| &file.expression);
+                let origin = files.iter().map(|file| file.origin.as_str()).collect::<Vec<_>>();
+                Ok(ResolvedSource {
+                    code,
+                    expression: quote!(concat!(#(#parts, "\n"),*)),
+                    origin: origin.join(" + "),
+                })
+            },
         }
     }
 }

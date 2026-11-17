@@ -1,0 +1,1 @@
+inline float mirtal_offset(float value) { return value + 1.0f; }

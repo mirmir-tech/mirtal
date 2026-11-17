@@ -200,6 +200,9 @@ std::size_t metal_kernel_native_handle(const MetalKernel& kernel) noexcept;
 std::unique_ptr<MetalLibrary> new_metal_library(rust::Str name, rust::Str source);
 std::size_t metal_library_native_handle(const MetalLibrary& library) noexcept;
 std::unique_ptr<TensorMap> load_safetensors(rust::Str path, const Stream& stream);
+struct TensorRange;
+std::unique_ptr<TensorMap> load_tensor_ranges(
+    rust::Str path, rust::Slice<const TensorRange> ranges, const Stream& stream);
 std::size_t tensor_map_len(const TensorMap& tensors) noexcept;
 void tensor_map_eval(const TensorMap& tensors);
 bool tensor_map_contains(const TensorMap& tensors, rust::Str name);
