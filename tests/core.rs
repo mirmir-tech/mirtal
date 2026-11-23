@@ -38,6 +38,34 @@ mirtal::metal_kernel! {
     }
 }
 
+mirtal::metal_kernel! {
+    fn joined_headers {
+        name: "joined_headers",
+        templates: [],
+        inputs: [input: f32],
+        outputs: [output: f32],
+        source: inline "uint index = thread_position_in_grid.x;
+output[index] = mirtal_offset(mirtal_scale(input[index]));",
+        header: files ["tests/kernels/scale.h", "tests/kernels/offset.h"],
+        row_contiguous: true,
+        atomic_outputs: false,
+    }
+}
+
+#[test]
+fn joins_header_files_in_order() -> Result<()> {
+    let stream = Device::gpu(0).new_stream()?;
+    let input = Array::from_slice(&[1.0_f32, -2.0], [2])?;
+    let [output] = joined_headers()?.dispatch(
+        &stream,
+        [&input],
+        &[OutputSpec::new(Shape::new([2])?, DType::Float32)],
+        &Dispatch::new([2, 1, 1], [2, 1, 1]),
+    )?;
+    assert_eq!(stream.read::<f32>(&output)?, vec![4.0, -5.0]);
+    Ok(())
+}
+
 #[test]
 fn reuses_storage_after_detaching_an_evaluated_graph() -> Result<()> {
     let stream = Device::gpu(0).new_stream()?;

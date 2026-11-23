@@ -44,7 +44,7 @@ pub use quantized::{
 pub use rope::{FrequencyRopeOptions, RopeOptions};
 pub use shape::Shape;
 pub use stream::Stream;
-pub use tensors::TensorFile;
+pub use tensors::{TensorFile, TensorRange};
 
 /// Returns the version of the linked native MLX library.
 pub fn version() -> Result<String> {

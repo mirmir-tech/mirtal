@@ -139,6 +139,21 @@ std::shared_ptr<Array> quantized_matmul(
       stream.value));
 }
 
+std::shared_ptr<Array> gather_mm(
+    const Array& input,
+    const Array& weight,
+    const NativeGatherIndices& indices,
+    bool sorted_indices,
+    const Stream& stream) {
+  return std::make_shared<Array>(mx::gather_mm(
+      input.value,
+      weight.value,
+      indices.lhs ? std::optional<mx::array>{indices.lhs->value} : std::nullopt,
+      indices.rhs ? std::optional<mx::array>{indices.rhs->value} : std::nullopt,
+      sorted_indices,
+      stream.value));
+}
+
 std::shared_ptr<Array> gather_qmm(
     const Array& input,
     const Array& weight,

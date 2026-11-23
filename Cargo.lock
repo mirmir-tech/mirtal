@@ -331,11 +331,11 @@ dependencies = [
 
 [[patch.unused]]
 name = "libmir"
-version = "0.6.2"
+version = "0.6.1"
 
 [[patch.unused]]
 name = "mircuda"
-version = "0.6.2"
+version = "0.6.1"
 
 [[patch.unused]]
 name = "mircup"

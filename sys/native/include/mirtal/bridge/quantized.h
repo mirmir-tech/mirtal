@@ -53,6 +53,12 @@ std::shared_ptr<Array> quantized_matmul(
     const Array& biases,
     const QuantizationOptions& options,
     const Stream& stream);
+std::shared_ptr<Array> gather_mm(
+    const Array& input,
+    const Array& weight,
+    const NativeGatherIndices& indices,
+    bool sorted_indices,
+    const Stream& stream);
 std::shared_ptr<Array> gather_qmm(
     const Array& input,
     const Array& weight,
