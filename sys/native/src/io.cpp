@@ -1,5 +1,8 @@
 #include "mirtal-sys/src/io.rs.h"
 #include "mlx/allocator.h"
+// Internal MLX header, not public API: RangeRead schedules its pread through
+// get_command_encoder, as MLX's own Load does, because libmlx does not export
+// Load. Check it on every MLX bump.
 #include "mlx/backend/cpu/encoder.h"
 #include "mlx/primitives.h"
 

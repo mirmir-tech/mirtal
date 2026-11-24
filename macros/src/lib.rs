@@ -5,6 +5,7 @@
 mod compiled;
 mod library;
 mod metal;
+mod source;
 
 use proc_macro::TokenStream;
 
@@ -107,9 +108,10 @@ pub fn metal_kernel(input: TokenStream) -> TokenStream {
 /// `mirtal::MetalLibrary::export`, then use the aliasing dispatch API for
 /// kernels that mutate buffers supplied by the caller.
 ///
-/// `source` accepts `inline "..."` or `file "path/to/library.metal"`. File
-/// paths are relative to `CARGO_MANIFEST_DIR`, and the complete translation unit
-/// is validated with Apple's Metal compiler during the Rust build.
+/// `source` accepts `inline "..."`, `file "path/to/library.metal"` or
+/// `files ["a.h", "b.metal"]`, joined as for `metal_kernel!`. File paths are
+/// relative to `CARGO_MANIFEST_DIR`, and the complete translation unit is
+/// validated with Apple's Metal compiler during the Rust build.
 ///
 /// # Example
 ///

@@ -4,6 +4,8 @@ use syn::{
     punctuated::Punctuated,
 };
 
+use crate::source::Source;
+
 pub(super) struct Kernel {
     pub visibility: Visibility,
     pub function: Ident,
@@ -36,13 +38,6 @@ pub(super) struct Buffer {
 pub(super) enum BufferKind {
     Array(Ident),
     Scalar(Ident),
-}
-
-pub(super) enum Source {
-    Inline(LitStr),
-    /// Files joined in order, each followed by a newline; `file "x"` is the
-    /// one-element list.
-    Files(Vec<LitStr>),
 }
 
 impl Parse for Kernel {
@@ -121,24 +116,6 @@ impl Parse for Buffer {
             BufferKind::Array(marker)
         };
         Ok(Self { name, kind })
-    }
-}
-
-impl Parse for Source {
-    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let mode: Ident = input.parse()?;
-        match mode.to_string().as_str() {
-            "inline" => Ok(Self::Inline(input.parse()?)),
-            "file" => Ok(Self::Files(vec![input.parse()?])),
-            "files" => {
-                let files: Vec<LitStr> = list(input)?;
-                if files.is_empty() {
-                    return Err(syn::Error::new(mode.span(), "`files` requires a path"));
-                }
-                Ok(Self::Files(files))
-            },
-            _ => Err(syn::Error::new(mode.span(), "expected `inline`, `file` or `files`")),
-        }
     }
 }
 

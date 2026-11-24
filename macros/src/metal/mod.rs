@@ -1,14 +1,12 @@
 mod syntax;
 pub mod validate;
 
-use std::{env, fs, path::PathBuf};
-
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Ident, LitStr};
+use syn::Ident;
 
 use self::{
-    syntax::{Buffer, Kernel, Source, TemplateDefault},
+    syntax::{Buffer, Kernel, TemplateDefault},
     validate::validate,
 };
 
@@ -23,8 +21,8 @@ pub fn expand(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 impl Kernel {
     fn expand(self) -> syn::Result<TokenStream> {
         self.validate_contract()?;
-        let source = self.source.resolve()?;
-        let header = self.header.resolve()?;
+        let source = self.source.resolve("<inline metal macro>")?;
+        let header = self.header.resolve("<inline metal macro>")?;
         validate(&self, &source.code, &header.code)?;
         let visibility = &self.visibility;
         let function = &self.function;
@@ -66,56 +64,6 @@ impl Kernel {
             }
         })
     }
-}
-
-struct ResolvedSource {
-    code: String,
-    expression: TokenStream,
-    origin: String,
-}
-
-impl Source {
-    fn resolve(&self) -> syn::Result<ResolvedSource> {
-        match self {
-            Self::Inline(value) => Ok(ResolvedSource {
-                code: value.value(),
-                expression: quote!(#value),
-                origin: "<inline metal macro>".into(),
-            }),
-            Self::Files(values) => {
-                let files = values.iter().map(resolve_file).collect::<syn::Result<Vec<_>>>()?;
-                let code = files.iter().fold(String::new(), |mut code, file| {
-                    code.push_str(&file.code);
-                    code.push('\n');
-                    code
-                });
-                let parts = files.iter().map(|file| &file.expression);
-                let origin = files.iter().map(|file| file.origin.as_str()).collect::<Vec<_>>();
-                Ok(ResolvedSource {
-                    code,
-                    expression: quote!(concat!(#(#parts, "\n"),*)),
-                    origin: origin.join(" + "),
-                })
-            },
-        }
-    }
-}
-
-fn resolve_file(value: &LitStr) -> syn::Result<ResolvedSource> {
-    let root = env::var_os("CARGO_MANIFEST_DIR")
-        .map(PathBuf::from)
-        .ok_or_else(|| syn::Error::new(value.span(), "CARGO_MANIFEST_DIR is not set"))?;
-    let path = root.join(value.value());
-    let code = match fs::read_to_string(&path) {
-        Ok(code) => code,
-        Err(error) => return Err(syn::Error::new(value.span(), error)),
-    };
-    let absolute = path.to_string_lossy().into_owned();
-    Ok(ResolvedSource {
-        code,
-        expression: quote!(include_str!(#absolute)),
-        origin: absolute,
-    })
 }
 
 fn dtype_tokens(kernel: &Kernel, buffer: &Buffer) -> TokenStream {
