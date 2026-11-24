@@ -120,3 +120,20 @@ fn compare(actual: &Array, expected: &Array, stream: &Stream) -> Result<()> {
     assert!(a.iter().zip(&b).all(|(a, b)| (a - b).abs() <= 1e-4));
     Ok(())
 }
+
+#[test]
+fn dense_gather_matches_taken_matrices() -> Result<()> {
+    let stream = Device::gpu(0).new_stream()?;
+    let graph = stream.graph();
+    let bank = Array::from_slice(&values(3 * 64 * 32)?, [3, 64, 32])?;
+    let input = Array::from_slice(&values(4 * 64)?, [4, 1, 64])?;
+    for (rhs, sorted) in [([2_u32, 0, 1, 2], false), ([0, 1, 1, 2], true)] {
+        let rhs = Array::from_slice(&rhs, [4])?;
+        let actual =
+            graph.gather_mm(&input, &bank, GatherIndices { lhs: None, rhs: Some(&rhs) }, sorted)?;
+        let expected = graph.matmul(&input, &graph.take(&bank, &rhs, 0)?)?;
+        assert_eq!(actual.shape()?.dimensions(), &[4, 1, 32]);
+        compare(&actual, &expected, &stream)?;
+    }
+    Ok(())
+}

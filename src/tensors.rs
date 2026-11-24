@@ -3,9 +3,27 @@ use std::path::Path;
 use cxx::UniquePtr;
 use mirtal_sys::io::ffi;
 
-use crate::{Array, Error, Result, Stream};
+use crate::{Array, DType, Error, Result, Stream};
 
-/// A lazily loaded map of arrays from a safetensors file.
+/// A named row-major array stored at `offset` of a file.
+///
+/// Containers other than safetensors (for example GGUF) describe each tensor
+/// by its file offset, element type and shape. Opaque block encodings are
+/// described as `Uint8` rows; the bytes reach device memory unchanged and are
+/// read only when the array is evaluated.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TensorRange {
+    /// Name under which the array is returned by [`TensorFile::get`].
+    pub name: String,
+    /// Absolute byte offset of the first element in the file.
+    pub offset: u64,
+    /// Element type of the stored values.
+    pub dtype: DType,
+    /// Row-major shape; every dimension is positive.
+    pub shape: Vec<u64>,
+}
+
+/// A lazily loaded map of named arrays from a tensor file.
 pub struct TensorFile {
     raw: UniquePtr<ffi::TensorMap>,
 }
@@ -17,6 +35,30 @@ impl TensorFile {
         let raw = ffi::load_safetensors(path, stream.native()?)?;
         if raw.is_null() {
             return Err(Error::NullHandle("safetensors map"));
+        }
+        Ok(Self { raw })
+    }
+
+    /// Binds `ranges` of the file at `path` as lazily read arrays.
+    ///
+    /// Like [`TensorFile::load`], reads evaluate on a CPU stream.
+    ///
+    /// Every range is checked against the file size before any read; names
+    /// must be unique.
+    pub fn load_ranges(path: &Path, ranges: &[TensorRange], stream: &Stream) -> Result<Self> {
+        let path = path.to_str().ok_or_else(|| Error::InvalidPath(path.to_path_buf()))?;
+        let ranges = ranges
+            .iter()
+            .map(|range| ffi::TensorRange {
+                name: range.name.clone(),
+                offset: range.offset,
+                dtype: range.dtype as u8,
+                shape: range.shape.clone(),
+            })
+            .collect::<Vec<_>>();
+        let raw = ffi::load_tensor_ranges(path, &ranges, stream.native()?)?;
+        if raw.is_null() {
+            return Err(Error::NullHandle("tensor range map"));
         }
         Ok(Self { raw })
     }

@@ -41,6 +41,8 @@ pub(super) enum BufferKind {
 pub(super) enum Source {
     Inline(LitStr),
     File(LitStr),
+    /// Files joined in order, each followed by a newline.
+    Files(Vec<LitStr>),
 }
 
 impl Parse for Kernel {
@@ -125,11 +127,17 @@ impl Parse for Buffer {
 impl Parse for Source {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let mode: Ident = input.parse()?;
-        let value = input.parse()?;
         match mode.to_string().as_str() {
-            "inline" => Ok(Self::Inline(value)),
-            "file" => Ok(Self::File(value)),
-            _ => Err(syn::Error::new(mode.span(), "expected `inline` or `file`")),
+            "inline" => Ok(Self::Inline(input.parse()?)),
+            "file" => Ok(Self::File(input.parse()?)),
+            "files" => {
+                let files: Vec<LitStr> = list(input)?;
+                if files.is_empty() {
+                    return Err(syn::Error::new(mode.span(), "`files` requires a path"));
+                }
+                Ok(Self::Files(files))
+            },
+            _ => Err(syn::Error::new(mode.span(), "expected `inline`, `file` or `files`")),
         }
     }
 }
