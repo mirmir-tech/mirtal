@@ -8,12 +8,12 @@ impl Graph<'_> {
         if !start.is_finite() || !stop.is_finite() || !stride.is_finite() || stride == 0.0 {
             return Err(invalid("arange requires finite bounds and a non-zero step"));
         }
-        Array::from_raw(ops::arange(start, stop, stride, dtype as u8, self.native()?)?, "arange")
+        Array::from_raw(ops::arange(start, stop, stride, dtype.into(), self.native()?)?, "arange")
     }
 
     /// Creates an array of `shape` filled with `value`.
     pub fn full(self, shape: &Shape, value: f32, dtype: DType) -> Result<Array> {
-        Array::from_raw(ops::full(&shape.native()?, value, dtype as u8, self.native()?)?, "full")
+        Array::from_raw(ops::full(&shape.native()?, value, dtype.into(), self.native()?)?, "full")
     }
 
     /// Joins arrays along an existing axis.

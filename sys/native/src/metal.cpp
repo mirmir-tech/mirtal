@@ -24,18 +24,6 @@ std::vector<std::string> names(rust::Str value) {
   return output;
 }
 
-mx::Dtype dtype(std::uint8_t value) {
-  switch (value) {
-    case 0: return mx::bool_;
-    case 1: return mx::uint32;
-    case 2: return mx::int32;
-    case 3: return mx::float16;
-    case 4: return mx::bfloat16;
-    case 5: return mx::float32;
-    case 6: return mx::uint8;
-    default: throw std::runtime_error("unsupported Metal output dtype");
-  }
-}
 }  // namespace
 
 std::unique_ptr<MetalKernel> new_metal_kernel(
@@ -130,9 +118,9 @@ std::unique_ptr<MetalLaunch> new_metal_launch(
 void metal_launch_add_output(
     MetalLaunch& launch,
     rust::Slice<const std::int32_t> shape,
-    std::uint8_t value) {
+    DType value) {
   launch.output_shapes.emplace_back(shape.begin(), shape.end());
-  launch.output_dtypes.push_back(dtype(value));
+  launch.output_dtypes.push_back(native_dtype(value));
 }
 
 void metal_launch_add_template_int(
@@ -149,8 +137,8 @@ void metal_launch_add_template_bool(MetalLaunch& launch, rust::Str name, bool va
 void metal_launch_add_template_dtype(
     MetalLaunch& launch,
     rust::Str name,
-    std::uint8_t value) {
-  launch.templates.emplace_back(string(name), dtype(value));
+    DType value) {
+  launch.templates.emplace_back(string(name), native_dtype(value));
 }
 
 void metal_launch_set_init(MetalLaunch& launch, float value) noexcept {

@@ -28,7 +28,7 @@ pub use compile::{CompileOptions, Compiled};
 pub use device::{Device, DeviceKind};
 pub use dtype::DType;
 pub use element::Element;
-pub use error::{Error, Result};
+pub use error::{Error, Result, TensorRangeError};
 pub use graph::Graph;
 pub use metal::{
     AliasingDispatch, DTypeConstraint, Dispatch, KernelDescriptor, MetalFunction, MetalKernel,

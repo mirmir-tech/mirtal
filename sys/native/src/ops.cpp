@@ -9,18 +9,6 @@ std::shared_ptr<Array> wrap_op(mx::array value) {
   return std::make_shared<Array>(std::move(value));
 }
 
-mx::Dtype op_dtype(std::uint8_t value) {
-  switch (value) {
-    case 0: return mx::bool_;
-    case 1: return mx::uint32;
-    case 2: return mx::int32;
-    case 3: return mx::float16;
-    case 4: return mx::bfloat16;
-    case 5: return mx::float32;
-    case 6: return mx::uint8;
-    default: throw std::invalid_argument("unsupported operation dtype");
-  }
-}
 }  // namespace
 
 std::shared_ptr<Array> subtract(const Array& a, const Array& b, const Stream& s) {
@@ -90,16 +78,16 @@ std::shared_ptr<Array> layer_norm(
       s.value));
 }
 std::shared_ptr<Array> arange(
-    float start, float stop, float step, std::uint8_t dtype, const Stream& s) {
-  return wrap_op(mx::arange(start, stop, step, op_dtype(dtype), s.value));
+    float start, float stop, float step, DType dtype, const Stream& s) {
+  return wrap_op(mx::arange(start, stop, step, native_dtype(dtype), s.value));
 }
 std::shared_ptr<Array> full(
     rust::Slice<const std::int32_t> shape,
     float value,
-    std::uint8_t dtype,
+    DType dtype,
     const Stream& s) {
   return wrap_op(
-      mx::full(mx::Shape(shape.begin(), shape.end()), value, op_dtype(dtype), s.value));
+      mx::full(mx::Shape(shape.begin(), shape.end()), value, native_dtype(dtype), s.value));
 }
 std::shared_ptr<Array> concatenate(const Arrays& inputs, std::int32_t axis, const Stream& s) {
   return wrap_op(mx::concatenate(inputs.values, axis, s.value));

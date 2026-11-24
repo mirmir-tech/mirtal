@@ -1,16 +1,17 @@
 #include "mirtal-sys/src/io.rs.h"
+#include "mlx/allocator.h"
+#include "mlx/backend/cpu/encoder.h"
+#include "mlx/primitives.h"
 
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <cstring>
-#include <limits>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -46,7 +47,7 @@ class FileReader : public mx::io::Reader {
     const auto base = way == std::ios_base::beg
                           ? 0
                           : static_cast<std::int64_t>(
-                                way == std::ios_base::end ? stream_size() : position_);
+                                way == std::ios_base::end ? size_ : position_);
     if (offset < -base) {
       throw std::runtime_error("tensor file seek precedes file start");
     }
@@ -66,10 +67,6 @@ class FileReader : public mx::io::Reader {
   std::size_t size() const noexcept { return size_; }
 
  protected:
-  // Size of the byte stream presented to MLX; subclasses that prepend
-  // synthesized bytes extend it.
-  virtual std::size_t stream_size() const noexcept { return size_; }
-
   void read_file(char* data, std::size_t count, std::size_t offset) const {
     if (offset > size_ || count > size_ - offset) {
       throw std::runtime_error("tensor read exceeds file size");
@@ -165,106 +162,31 @@ class SafeTensorReader final : public FileReader {
   std::vector<char> header_;
 };
 
-// Presents named ranges of an arbitrary file as a SafeTensors stream: a
-// synthesized header precedes the file, and every tensor's data offsets
-// address its bytes in place, so MLX loads each range lazily without copies.
-class RangeReader final : public FileReader {
+// One array read from `offset` of a file on evaluation, as MLX's `Load`
+// reads a SafeTensors tensor; libmlx does not export `Load` itself.
+class RangeRead final : public mx::Primitive {
  public:
-  RangeReader(std::string path, rust::Slice<const TensorRange> ranges)
-      : FileReader(std::move(path)) {
-    std::unordered_set<std::string> names;
-    std::ostringstream header;
-    header << '{';
-    for (const auto& range : ranges) {
-      auto name = std::string(range.name);
-      if (!names.insert(name).second) {
-        throw std::runtime_error("duplicate tensor range: " + name);
-      }
-      const auto [label, element] = safetensors_dtype(range.dtype);
-      std::uint64_t bytes = element;
-      std::ostringstream shape;
-      for (const auto dimension : range.shape) {
-        if (dimension == 0) throw std::runtime_error("empty tensor range: " + name);
-        if (dimension > static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max())) {
-          throw std::runtime_error("tensor range dimension exceeds int32: " + name);
-        }
-        if (bytes > std::numeric_limits<std::uint64_t>::max() / dimension) {
-          throw std::runtime_error("tensor range size overflows: " + name);
-        }
-        bytes *= dimension;
-        if (shape.tellp() > 0) shape << ',';
-        shape << dimension;
-      }
-      if (range.shape.empty()) throw std::runtime_error("scalar tensor range: " + name);
-      if (range.offset > size() || bytes > size() - range.offset) {
-        throw std::runtime_error("tensor range exceeds file size: " + name);
-      }
-      if (header.tellp() > 1) header << ',';
-      header << '"' << escape(name) << R"(":{"dtype":")" << label << R"(","shape":[)"
-             << shape.str() << R"(],"data_offsets":[)" << range.offset << ','
-             << range.offset + bytes << "]}";
-    }
-    header << '}';
-    header_ = header.str();
-    while (header_.size() % 8 != 0) header_.push_back(' ');
-    prefix_ = sizeof(std::uint64_t) + header_.size();
+  RangeRead(mx::Stream stream, std::shared_ptr<FileReader> reader, std::size_t offset)
+      : Primitive(stream), reader_(std::move(reader)), offset_(offset) {}
+
+  void eval_cpu(const std::vector<mx::array>&, std::vector<mx::array>& outputs) override {
+    auto& out = outputs.at(0);
+    out.set_data(mx::allocator::malloc(out.nbytes()));
+    auto& encoder = mx::cpu::get_command_encoder(stream());
+    encoder.set_output_array(out);
+    encoder.dispatch([data = out.data<char>(), bytes = out.nbytes(), reader = reader_,
+                      offset = offset_] { reader->read(data, bytes, offset); });
   }
 
-  using FileReader::read;
-
-  void read(char* data, std::size_t count, std::size_t offset) override {
-    if (offset < prefix_) {
-      const auto head = std::min(count, prefix_ - offset);
-      for (std::size_t index = 0; index < head; ++index) {
-        data[index] = prefix_byte(offset + index);
-      }
-      data += head;
-      count -= head;
-      offset += head;
-    }
-    if (count > 0) read_file(data, count, offset - prefix_);
+  void eval_gpu(const std::vector<mx::array>&, std::vector<mx::array>&) override {
+    throw std::runtime_error("tensor ranges read on a CPU stream");
   }
 
-  void release_header() { header_.clear(); header_.shrink_to_fit(); }
-
- protected:
-  std::size_t stream_size() const noexcept override { return prefix_ + size(); }
+  const char* name() const override { return "RangeRead"; }
 
  private:
-  char prefix_byte(std::size_t offset) const {
-    if (offset >= sizeof(std::uint64_t)) return header_[offset - sizeof(std::uint64_t)];
-    const auto length = static_cast<std::uint64_t>(header_.size());
-    return static_cast<char>((length >> (8 * offset)) & 0xff);
-  }
-
-  // Codes follow mirtal::DType.
-  static std::pair<const char*, std::uint64_t> safetensors_dtype(std::uint8_t code) {
-    switch (code) {
-      case 0: return {"BOOL", 1};
-      case 1: return {"U32", 4};
-      case 2: return {"I32", 4};
-      case 3: return {"F16", 2};
-      case 4: return {"BF16", 2};
-      case 5: return {"F32", 4};
-      case 6: return {"U8", 1};
-      default: throw std::runtime_error("unsupported tensor range dtype");
-    }
-  }
-
-  static std::string escape(const std::string& name) {
-    std::string escaped;
-    for (const char value : name) {
-      if (value == '"' || value == '\\') escaped.push_back('\\');
-      if (static_cast<unsigned char>(value) < 0x20) {
-        throw std::runtime_error("tensor range name has a control character");
-      }
-      escaped.push_back(value);
-    }
-    return escaped;
-  }
-
-  std::string header_;
-  std::size_t prefix_{0};
+  std::shared_ptr<FileReader> reader_;
+  std::size_t offset_;
 };
 }  // namespace
 
@@ -275,12 +197,30 @@ std::unique_ptr<TensorMap> load_safetensors(rust::Str path, const Stream& stream
   return std::make_unique<TensorMap>(TensorMap{std::move(loaded.first)});
 }
 
+// Each range becomes an array of one RangeRead over a shared reader, as
+// mx::load_safetensors builds its arrays: evaluation preads the range into a
+// newly allocated buffer, one copy from the file. Rust validated the ranges;
+// the reader still bounds every read, should the file change.
 std::unique_ptr<TensorMap> load_tensor_ranges(
     rust::Str path, rust::Slice<const TensorRange> ranges, const Stream& stream) {
-  auto reader = std::make_shared<RangeReader>(string(path), ranges);
-  auto loaded = mx::load_safetensors(reader, stream.value);
-  reader->release_header();
-  return std::make_unique<TensorMap>(TensorMap{std::move(loaded.first)});
+  if (stream.value.device != mx::Device::cpu) {
+    throw std::invalid_argument("tensor ranges load on a CPU stream");
+  }
+  auto reader = std::make_shared<FileReader>(string(path));
+  TensorMap tensors;
+  tensors.values.reserve(ranges.size());
+  for (const auto& range : ranges) {
+    mx::Shape shape;
+    shape.reserve(range.shape.size());
+    for (const auto dimension : range.shape) {
+      shape.push_back(static_cast<mx::ShapeElem>(dimension));
+    }
+    auto load = std::make_shared<RangeRead>(stream.value, reader, range.offset);
+    tensors.values.insert_or_assign(
+        std::string(range.name),
+        mx::array(std::move(shape), native_dtype(range.dtype), std::move(load), {}));
+  }
+  return std::make_unique<TensorMap>(std::move(tensors));
 }
 
 std::size_t tensor_map_len(const TensorMap& tensors) noexcept {
@@ -305,5 +245,12 @@ std::shared_ptr<Array> tensor_map_get(const TensorMap& tensors, rust::Str name) 
     throw std::runtime_error("missing safetensor: " + key);
   }
   return std::make_shared<Array>(found->second);
+}
+
+std::shared_ptr<Array> tensor_map_take(TensorMap& tensors, rust::Str name) {
+  auto key = string(name);
+  auto node = tensors.values.extract(key);
+  if (node.empty()) throw std::runtime_error("missing safetensor: " + key);
+  return std::make_shared<Array>(std::move(node.mapped()));
 }
 }  // namespace mirtal

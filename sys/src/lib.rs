@@ -9,12 +9,26 @@ pub mod ffi {
         scale: f32,
         offset: i32,
     }
+    /// Element types across the bridge; C++ maps each to its MLX type in one
+    /// exhaustive `switch`, and Rust to `mirtal::DType` in one `match`.
+    #[repr(u8)]
+    enum DType {
+        Bool,
+        Uint32,
+        Int32,
+        Float16,
+        Bfloat16,
+        Float32,
+        Uint8,
+    }
     struct NativeAttentionOptions {
         scale: f32,
         mask_kind: u8,
     }
     unsafe extern "C++" {
         include!("mirtal/bridge.h");
+
+        type DType;
         type Array;
         type Arrays;
         type Compiled;
@@ -41,7 +55,7 @@ pub mod ffi {
         fn array_from_owned_native_handle(address: usize) -> Result<SharedPtr<Array>>;
         fn array_native_handle(array: &Array) -> usize;
         fn array_shape(array: &Array) -> Result<Vec<i32>>;
-        fn array_dtype(array: &Array) -> Result<u8>;
+        fn array_dtype(array: &Array) -> Result<DType>;
         fn array_len(array: &Array) -> usize;
         fn array_eval(array: &Array) -> Result<()>;
         fn arrays_eval(arrays: &Arrays) -> Result<()>;
@@ -62,10 +76,10 @@ pub mod ffi {
             stream: &Stream,
         ) -> Result<SharedPtr<Array>>;
         fn rms_norm_unit(input: &Array, eps: f32, stream: &Stream) -> Result<SharedPtr<Array>>;
-        fn astype(input: &Array, dtype: u8, stream: &Stream) -> Result<SharedPtr<Array>>;
-        fn from_fp8(input: &Array, dtype: u8, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn astype(input: &Array, dtype: DType, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn from_fp8(input: &Array, dtype: DType, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn to_fp8(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
-        fn view_dtype(input: &Array, dtype: u8, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn view_dtype(input: &Array, dtype: DType, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn contiguous(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn reshape(input: &Array, shape: &[i32], stream: &Stream) -> Result<SharedPtr<Array>>;
         fn transpose(input: &Array, axes: &[i32], stream: &Stream) -> Result<SharedPtr<Array>>;
@@ -143,10 +157,10 @@ pub mod ffi {
             group_z: i32,
             verbose: bool,
         ) -> UniquePtr<MetalLaunch>;
-        fn metal_launch_add_output(launch: Pin<&mut MetalLaunch>, shape: &[i32], dtype: u8);
+        fn metal_launch_add_output(launch: Pin<&mut MetalLaunch>, shape: &[i32], dtype: DType);
         fn metal_launch_add_template_int(launch: Pin<&mut MetalLaunch>, name: &str, value: i32);
         fn metal_launch_add_template_bool(launch: Pin<&mut MetalLaunch>, name: &str, value: bool);
-        fn metal_launch_add_template_dtype(launch: Pin<&mut MetalLaunch>, name: &str, value: u8);
+        fn metal_launch_add_template_dtype(launch: Pin<&mut MetalLaunch>, name: &str, value: DType);
         fn metal_launch_set_init(launch: Pin<&mut MetalLaunch>, value: f32);
         fn metal_dispatch(
             kernel: &MetalKernel,

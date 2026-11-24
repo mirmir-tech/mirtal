@@ -5,7 +5,7 @@ pub mod ffi {
     struct TensorRange {
         name: String,
         offset: u64,
-        dtype: u8,
+        dtype: DType,
         shape: Vec<u64>,
     }
     unsafe extern "C++" {
@@ -13,6 +13,7 @@ pub mod ffi {
 
         type Array = crate::ffi::Array;
         type Stream = crate::ffi::Stream;
+        type DType = crate::ffi::DType;
         type TensorMap;
 
         fn load_safetensors(path: &str, stream: &Stream) -> Result<UniquePtr<TensorMap>>;
@@ -25,5 +26,6 @@ pub mod ffi {
         fn tensor_map_eval(tensors: &TensorMap) -> Result<()>;
         fn tensor_map_contains(tensors: &TensorMap, name: &str) -> bool;
         fn tensor_map_get(tensors: &TensorMap, name: &str) -> Result<SharedPtr<Array>>;
+        fn tensor_map_take(tensors: Pin<&mut TensorMap>, name: &str) -> Result<SharedPtr<Array>>;
     }
 }

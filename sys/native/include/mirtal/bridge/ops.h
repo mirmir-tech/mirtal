@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "mirtal/bridge/dtype.h"
 #include "rust/cxx.h"
 
 namespace mirtal {
@@ -29,9 +30,9 @@ std::shared_ptr<Array> clip(const Array&, const Array&, const Array&, const Stre
 std::shared_ptr<Array> matmul(const Array&, const Array&, const Stream&);
 std::shared_ptr<Array> layer_norm(
     const Array&, const Array&, const Array&, float, const Stream&);
-std::shared_ptr<Array> arange(float, float, float, std::uint8_t, const Stream&);
+std::shared_ptr<Array> arange(float, float, float, DType, const Stream&);
 std::shared_ptr<Array> full(
-    rust::Slice<const std::int32_t>, float, std::uint8_t, const Stream&);
+    rust::Slice<const std::int32_t>, float, DType, const Stream&);
 std::shared_ptr<Array> concatenate(const Arrays&, std::int32_t, const Stream&);
 std::shared_ptr<Array> stack(const Arrays&, std::int32_t, const Stream&);
 std::shared_ptr<Array> repeat(const Array&, std::int32_t, std::int32_t, const Stream&);

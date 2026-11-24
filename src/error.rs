@@ -75,7 +75,49 @@ pub enum Error {
     /// An attention configuration is invalid.
     #[error("invalid attention configuration: {0}")]
     InvalidAttention(String),
+    /// A tensor file could not be inspected.
+    #[error("tensor file I/O failed: {0}")]
+    Io(#[from] std::io::Error),
+    /// A tensor range cannot be read as an array.
+    #[error("tensor range `{name}` {reason}")]
+    TensorRange {
+        /// Name of the range.
+        name: String,
+        /// What makes the range unreadable.
+        reason: TensorRangeError,
+    },
     /// A generic graph operation received invalid arguments.
     #[error("invalid graph operation: {0}")]
     InvalidOperation(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+/// Why a [`crate::TensorRange`] cannot be read as an array.
+pub enum TensorRangeError {
+    /// The shape has no dimensions.
+    #[error("has no dimensions")]
+    Scalar,
+    /// A dimension is zero.
+    #[error("has an empty dimension")]
+    EmptyDimension,
+    /// A dimension exceeds the native `i32` shape type.
+    #[error("has dimension {0}, beyond i32")]
+    DimensionTooLarge(u64),
+    /// The byte size or end offset overflows `u64`.
+    #[error("overflows the byte count")]
+    SizeOverflow,
+    /// The name contains a control character.
+    #[error("has a control character in its name")]
+    ControlCharacter,
+    /// Another range of the same file has the same name.
+    #[error("is named twice")]
+    Duplicate,
+    /// The range ends past the end of its file.
+    #[error("ends at byte {end}, past the file's {file} bytes")]
+    PastEndOfFile {
+        /// Exclusive end offset of the range.
+        end: u64,
+        /// File size in bytes.
+        file: u64,
+    },
 }

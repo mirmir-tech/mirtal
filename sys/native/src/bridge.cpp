@@ -24,30 +24,6 @@ mx::Shape checked_shape(
   return mx::Shape(shape.begin(), shape.end());
 }
 
-mx::Dtype dtype(std::uint8_t value) {
-  switch (value) {
-    case 0: return mx::bool_;
-    case 1: return mx::uint32;
-    case 2: return mx::int32;
-    case 3: return mx::float16;
-    case 4: return mx::bfloat16;
-    case 5: return mx::float32;
-    case 6: return mx::uint8;
-    default: throw std::runtime_error("unsupported MLX dtype");
-  }
-}
-
-std::uint8_t dtype(const mx::Dtype& value) {
-  if (value == mx::bool_) return 0;
-  if (value == mx::uint32) return 1;
-  if (value == mx::int32) return 2;
-  if (value == mx::float16) return 3;
-  if (value == mx::bfloat16) return 4;
-  if (value == mx::float32) return 5;
-  if (value == mx::uint8) return 6;
-  return 255;
-}
-
 std::size_t recommended_working_set() {
   const auto& info = mx::device_info(mx::Device(mx::Device::gpu, 0));
   auto value = info.find("max_recommended_working_set_size");
@@ -80,6 +56,30 @@ std::shared_ptr<Array> wrap(mx::array value) {
   return std::make_shared<Array>(std::move(value));
 }
 }  // namespace
+
+mx::Dtype native_dtype(DType value) {
+  switch (value) {
+    case DType::Bool: return mx::bool_;
+    case DType::Uint32: return mx::uint32;
+    case DType::Int32: return mx::int32;
+    case DType::Float16: return mx::float16;
+    case DType::Bfloat16: return mx::bfloat16;
+    case DType::Float32: return mx::float32;
+    case DType::Uint8: return mx::uint8;
+  }
+  throw std::invalid_argument("unknown bridge dtype");
+}
+
+DType bridge_dtype(const mx::Dtype& value) {
+  if (value == mx::bool_) return DType::Bool;
+  if (value == mx::uint32) return DType::Uint32;
+  if (value == mx::int32) return DType::Int32;
+  if (value == mx::float16) return DType::Float16;
+  if (value == mx::bfloat16) return DType::Bfloat16;
+  if (value == mx::float32) return DType::Float32;
+  if (value == mx::uint8) return DType::Uint8;
+  throw std::invalid_argument("array dtype has no bridge type");
+}
 
 rust::String version() { return rust::String(mx::version()); }
 rust::String device_name(std::uint8_t kind, std::int32_t index) {
@@ -138,7 +138,7 @@ rust::Vec<std::int32_t> array_shape(const Array& array) {
   for (auto dimension : array.value.shape()) output.push_back(dimension);
   return output;
 }
-std::uint8_t array_dtype(const Array& array) { return dtype(array.value.dtype()); }
+DType array_dtype(const Array& array) { return bridge_dtype(array.value.dtype()); }
 std::size_t array_len(const Array& array) noexcept { return array.value.size(); }
 void array_eval(const Array& array) { mx::async_eval(array.value); }
 void arrays_eval(const Arrays& arrays) { mx::async_eval(arrays.values); }
@@ -211,28 +211,28 @@ std::shared_ptr<Array> rms_norm_unit(
 }
 std::shared_ptr<Array> astype(
     const Array& input,
-    std::uint8_t target,
+    DType target,
     const Stream& stream) {
-  return input.value.dtype() == dtype(target)
+  return input.value.dtype() == native_dtype(target)
       ? wrap(input.value)
-      : wrap(mx::astype(input.value, dtype(target), stream.value));
+      : wrap(mx::astype(input.value, native_dtype(target), stream.value));
 }
 std::shared_ptr<Array> from_fp8(
     const Array& input,
-    std::uint8_t target,
+    DType target,
     const Stream& stream) {
-  return wrap(mx::from_fp8(input.value, dtype(target), stream.value));
+  return wrap(mx::from_fp8(input.value, native_dtype(target), stream.value));
 }
 std::shared_ptr<Array> to_fp8(const Array& input, const Stream& stream) {
   return wrap(mx::to_fp8(input.value, stream.value));
 }
 std::shared_ptr<Array> view_dtype(
     const Array& input,
-    std::uint8_t target,
+    DType target,
     const Stream& stream) {
-  return input.value.dtype() == dtype(target)
+  return input.value.dtype() == native_dtype(target)
       ? wrap(input.value)
-      : wrap(mx::view(input.value, dtype(target), stream.value));
+      : wrap(mx::view(input.value, native_dtype(target), stream.value));
 }
 std::shared_ptr<Array> contiguous(const Array& input, const Stream& stream) {
   return wrap(mx::contiguous(input.value, false, stream.value));

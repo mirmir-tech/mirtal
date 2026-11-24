@@ -1,27 +1,14 @@
-use std::path::Path;
+mod range;
+#[cfg(test)]
+mod tests;
+
+use std::{collections::HashSet, path::Path};
 
 use cxx::UniquePtr;
 use mirtal_sys::io::ffi;
+pub use range::TensorRange;
 
-use crate::{Array, DType, Error, Result, Stream};
-
-/// A named row-major array stored at `offset` of a file.
-///
-/// Containers other than safetensors (for example GGUF) describe each tensor
-/// by its file offset, element type and shape. Opaque block encodings are
-/// described as `Uint8` rows; the bytes reach device memory unchanged and are
-/// read only when the array is evaluated.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TensorRange {
-    /// Name under which the array is returned by [`TensorFile::get`].
-    pub name: String,
-    /// Absolute byte offset of the first element in the file.
-    pub offset: u64,
-    /// Element type of the stored values.
-    pub dtype: DType,
-    /// Row-major shape; every dimension is positive.
-    pub shape: Vec<u64>,
-}
+use crate::{Array, Error, Result, Stream, TensorRangeError};
 
 /// A lazily loaded map of named arrays from a tensor file.
 pub struct TensorFile {
@@ -41,22 +28,34 @@ impl TensorFile {
 
     /// Binds `ranges` of the file at `path` as lazily read arrays.
     ///
-    /// Like [`TensorFile::load`], reads evaluate on a CPU stream.
+    /// Like [`TensorFile::load`], reads evaluate on a CPU stream. Each read
+    /// copies its range from the file into a new buffer once, on
+    /// evaluation; nothing is memory-mapped.
     ///
-    /// Every range is checked against the file size before any read; names
-    /// must be unique.
+    /// Names must be unique and every range must end within the file.
     pub fn load_ranges(path: &Path, ranges: &[TensorRange], stream: &Stream) -> Result<Self> {
-        let path = path.to_str().ok_or_else(|| Error::InvalidPath(path.to_path_buf()))?;
+        let file = std::fs::metadata(path)?.len();
+        let mut names = HashSet::with_capacity(ranges.len());
+        for range in ranges {
+            let invalid = |reason| Error::TensorRange { name: range.name().to_owned(), reason };
+            if !names.insert(range.name()) {
+                return Err(invalid(TensorRangeError::Duplicate));
+            }
+            if range.end() > file {
+                return Err(invalid(TensorRangeError::PastEndOfFile { end: range.end(), file }));
+            }
+        }
+        let utf8 = path.to_str().ok_or_else(|| Error::InvalidPath(path.to_path_buf()))?;
         let ranges = ranges
             .iter()
             .map(|range| ffi::TensorRange {
-                name: range.name.clone(),
-                offset: range.offset,
-                dtype: range.dtype as u8,
-                shape: range.shape.clone(),
+                name: range.name().to_owned(),
+                offset: range.offset(),
+                dtype: range.dtype().into(),
+                shape: range.shape().to_vec(),
             })
             .collect::<Vec<_>>();
-        let raw = ffi::load_tensor_ranges(path, &ranges, stream.native()?)?;
+        let raw = ffi::load_tensor_ranges(utf8, &ranges, stream.native()?)?;
         if raw.is_null() {
             return Err(Error::NullHandle("tensor range map"));
         }
@@ -87,6 +86,14 @@ impl TensorFile {
     /// Returns the array named `name`.
     pub fn get(&self, name: &str) -> Result<Array> {
         Array::from_raw(ffi::tensor_map_get(self.native()?, name)?, "safetensor")
+    }
+
+    /// Removes the array named `name` and returns it, so the file no longer
+    /// keeps it alive: a caller that replaces it (by a cast, say) frees it
+    /// once the replacement is evaluated.
+    pub fn take(&mut self, name: &str) -> Result<Array> {
+        let tensors = self.raw.as_mut().ok_or(Error::NullHandle("safetensors map"))?;
+        Array::from_raw(ffi::tensor_map_take(tensors, name)?, "safetensor")
     }
 
     fn native(&self) -> Result<&ffi::TensorMap> {

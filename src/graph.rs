@@ -74,13 +74,13 @@ impl<'stream> Graph<'stream> {
 
     /// Casts an array to `dtype`.
     pub fn astype(self, input: &Array, dtype: DType) -> Result<Array> {
-        Array::from_raw(ffi::astype(input.native()?, dtype as u8, self.native()?)?, "astype")
+        Array::from_raw(ffi::astype(input.native()?, dtype.into(), self.native()?)?, "astype")
     }
 
     /// Converts E4M3 bytes into the requested floating-point type.
     pub fn from_fp8(self, input: &Array, dtype: DType) -> Result<Array> {
         Array::from_raw(
-            ffi::from_fp8(input.native()?, dtype as u8, self.native()?)?,
+            ffi::from_fp8(input.native()?, dtype.into(), self.native()?)?,
             "FP8 conversion",
         )
     }
@@ -93,7 +93,7 @@ impl<'stream> Graph<'stream> {
     /// Reinterprets the storage of `input` with an equally sized element type.
     pub fn view_dtype(self, input: &Array, dtype: DType) -> Result<Array> {
         Array::from_raw(
-            ffi::view_dtype(input.native()?, dtype as u8, self.native()?)?,
+            ffi::view_dtype(input.native()?, dtype.into(), self.native()?)?,
             "dtype view",
         )
     }
