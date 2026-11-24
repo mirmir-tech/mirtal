@@ -82,7 +82,6 @@ impl Source {
                 expression: quote!(#value),
                 origin: "<inline metal macro>".into(),
             }),
-            Self::File(value) => resolve_file(value),
             Self::Files(values) => {
                 let files = values.iter().map(resolve_file).collect::<syn::Result<Vec<_>>>()?;
                 let code = files.iter().fold(String::new(), |mut code, file| {

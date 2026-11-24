@@ -40,8 +40,8 @@ pub(super) enum BufferKind {
 
 pub(super) enum Source {
     Inline(LitStr),
-    File(LitStr),
-    /// Files joined in order, each followed by a newline.
+    /// Files joined in order, each followed by a newline; `file "x"` is the
+    /// one-element list.
     Files(Vec<LitStr>),
 }
 
@@ -129,7 +129,7 @@ impl Parse for Source {
         let mode: Ident = input.parse()?;
         match mode.to_string().as_str() {
             "inline" => Ok(Self::Inline(input.parse()?)),
-            "file" => Ok(Self::File(input.parse()?)),
+            "file" => Ok(Self::Files(vec![input.parse()?])),
             "files" => {
                 let files: Vec<LitStr> = list(input)?;
                 if files.is_empty() {
