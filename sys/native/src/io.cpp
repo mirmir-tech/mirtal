@@ -1,13 +1,10 @@
 #include "mirtal-sys/src/io.rs.h"
 #include "mlx/allocator.h"
-// Internal MLX header, not public API: RangeRead schedules its pread through
-// get_command_encoder, as MLX's own Load does, because libmlx does not export
-// Load. Check it on every MLX bump.
-#include "mlx/backend/cpu/encoder.h"
 #include "mlx/primitives.h"
 
 #include <algorithm>
 #include <cctype>
+#include <cerrno>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -80,14 +77,18 @@ class FileReader : public mx::io::Reader {
     while (count > 0) {
       const auto read =
           pread(fileno(file_.get()), data, std::min(count, max_read), offset);
+      if (read < 0 && errno == EINTR) continue;
       if (read <= 0) {
+        // The file shrank since its ranges were checked, or the read failed.
         std::ostringstream message;
-        message << "failed to read " << count << " bytes from " << path_;
+        message << "failed to read " << count << " bytes at offset " << offset << " from "
+                << path_ << ": "
+                << (read == 0 ? "unexpected end of file" : std::strerror(errno));
         throw std::runtime_error(message.str());
       }
       data += read;
-      count -= read;
-      offset += read;
+      count -= static_cast<std::size_t>(read);
+      offset += static_cast<std::size_t>(read);
     }
   }
 
@@ -167,6 +168,13 @@ class SafeTensorReader final : public FileReader {
 
 // One array read from `offset` of a file on evaluation, as MLX's `Load`
 // reads a SafeTensors tensor; libmlx does not export `Load` itself.
+//
+// The read runs in `eval_cpu` itself, on the thread evaluating the array,
+// not dispatched to the CPU stream's worker: a failed read throws back
+// through the evaluation to the caller (MLX's worker has no handler and
+// would terminate the process), and the buffer is filled before the
+// evaluation returns, so dropping the array right after cannot leave a read
+// writing into freed memory. A range has no inputs to wait for.
 class RangeRead final : public mx::Primitive {
  public:
   RangeRead(mx::Stream stream, std::shared_ptr<FileReader> reader, std::size_t offset)
@@ -175,10 +183,7 @@ class RangeRead final : public mx::Primitive {
   void eval_cpu(const std::vector<mx::array>&, std::vector<mx::array>& outputs) override {
     auto& out = outputs.at(0);
     out.set_data(mx::allocator::malloc(out.nbytes()));
-    auto& encoder = mx::cpu::get_command_encoder(stream());
-    encoder.set_output_array(out);
-    encoder.dispatch([data = out.data<char>(), bytes = out.nbytes(), reader = reader_,
-                      offset = offset_] { reader->read(data, bytes, offset); });
+    reader_->read(out.data<char>(), out.nbytes(), offset_);
   }
 
   void eval_gpu(const std::vector<mx::array>&, std::vector<mx::array>&) override {

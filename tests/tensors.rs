@@ -81,6 +81,53 @@ fn loads_tensor_ranges_from_their_offsets() -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
+/// A file that shrank after its ranges were checked fails the evaluation
+/// that reads past its end, as an error rather than a terminated process.
+#[test]
+fn a_range_past_a_shrunk_file_fails_its_evaluation() -> Result<(), Box<dyn std::error::Error>> {
+    let path = std::env::temp_dir().join(format!("mirtal-shrunk-{}.bin", std::process::id()));
+    fs::write(&path, vec![7_u8; 64])?;
+    let stream = Device::cpu(0).new_stream()?;
+    let range = TensorRange::new("late", 32, DType::Uint8, vec![32])?;
+    let tensors = TensorFile::load_ranges(&path, &[range], &stream)?;
+    fs::write(&path, vec![7_u8; 40])?;
+    let error = tensors.evaluate().err().map(|error| error.to_string()).unwrap_or_default();
+    assert!(error.contains("unexpected end of file"), "{error}");
+    let error = stream.eval(&tensors.get("late")?).err().map(|error| error.to_string());
+    assert!(error.is_some_and(|error| error.contains("unexpected end of file")));
+    drop(tensors);
+    fs::remove_file(path)?;
+    Ok(())
+}
+
+/// An evaluation returns with the range's bytes read: dropping the array
+/// right after leaves no read behind to write into its freed buffer, and a
+/// file cut after the evaluation does not change what was read.
+#[test]
+fn an_evaluated_range_holds_its_bytes_when_it_returns() -> Result<(), Box<dyn std::error::Error>> {
+    let path = std::env::temp_dir().join(format!("mirtal-dropped-{}.bin", std::process::id()));
+    let bytes = (0..4 << 20).map(|index: u32| index.to_le_bytes()[0]).collect::<Vec<_>>();
+    fs::write(&path, &bytes)?;
+    let stream = Device::cpu(0).new_stream()?;
+    let range = || TensorRange::new("all", 0, DType::Uint8, vec![4 << 20]);
+    for _ in 0..64 {
+        let tensors = TensorFile::load_ranges(&path, &[range()?], &stream)?;
+        let array = tensors.get("all")?;
+        drop(tensors);
+        stream.eval(&array)?;
+        drop(array);
+    }
+    let tensors = TensorFile::load_ranges(&path, &[range()?], &stream)?;
+    let array = tensors.get("all")?;
+    stream.eval(&array)?;
+    fs::write(&path, b"")?;
+    let read = stream.read::<u32>(&array)?;
+    assert!(read.iter().zip(&bytes).all(|(read, byte)| *read == u32::from(*byte)));
+    drop((tensors, array));
+    fs::remove_file(path)?;
+    Ok(())
+}
+
 trait Named {
     fn named(self, name: &str) -> String;
 }
