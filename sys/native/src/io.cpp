@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -77,13 +78,16 @@ class FileReader : public mx::io::Reader {
     while (count > 0) {
       const auto read =
           pread(fileno(file_.get()), data, std::min(count, max_read), offset);
-      if (read < 0 && errno == EINTR) continue;
+      // errno is taken at once: formatting the message may change it.
+      const int error = read < 0 ? errno : 0;
+      if (error == EINTR) continue;
       if (read <= 0) {
         // The file shrank since its ranges were checked, or the read failed.
         std::ostringstream message;
         message << "failed to read " << count << " bytes at offset " << offset << " from "
                 << path_ << ": "
-                << (read == 0 ? "unexpected end of file" : std::strerror(errno));
+                << (read == 0 ? std::string("unexpected end of file")
+                              : std::generic_category().message(error));
         throw std::runtime_error(message.str());
       }
       data += read;
