@@ -85,6 +85,7 @@ pub mod ffi {
             dependencies: &Arrays,
             stream: &Stream,
         ) -> Result<SharedPtr<Array>>;
+        fn array_primitive_on_stream(input: &Array, stream: &Stream) -> Result<bool>;
         fn argpartition(
             input: &Array,
             kth: i32,

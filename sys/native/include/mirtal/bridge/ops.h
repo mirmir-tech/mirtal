@@ -53,6 +53,7 @@ std::shared_ptr<Array> slice_update(
     rust::Slice<const std::int32_t>,
     const Stream&);
 std::shared_ptr<Array> depends(const Array&, const Arrays&, const Stream&);
+bool array_primitive_on_stream(const Array&, const Stream&);
 std::shared_ptr<Array> argpartition(const Array&, std::int32_t, std::int32_t, const Stream&);
 std::shared_ptr<Array> argsort(const Array&, std::int32_t, const Stream&);
 std::shared_ptr<Array> take(const Array&, const Array&, std::int32_t, const Stream&);

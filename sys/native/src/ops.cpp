@@ -1,5 +1,7 @@
 #include "mirtal/bridge.h"
 
+#include <mlx/primitives.h>
+
 #include <stdexcept>
 #include <utility>
 
@@ -134,8 +136,14 @@ std::shared_ptr<Array> slice_update(
       mx::Shape(stop.begin(), stop.end()),
       s.value));
 }
-std::shared_ptr<Array> depends(const Array& input, const Arrays& dependencies, const Stream&) {
-  return wrap_op(mx::depends({input.value}, dependencies.values).front());
+std::shared_ptr<Array> depends(const Array& input, const Arrays& dependencies, const Stream& s) {
+  auto anchored = (!input.value.has_primitive() || input.value.primitive().stream() != s.value)
+                      ? mx::copy(input.value, s.value)
+                      : input.value;
+  return wrap_op(mx::depends({anchored}, dependencies.values).front());
+}
+bool array_primitive_on_stream(const Array& input, const Stream& s) {
+  return input.value.has_primitive() && input.value.primitive().stream() == s.value;
 }
 std::shared_ptr<Array> argpartition(
     const Array& x, std::int32_t kth, std::int32_t axis, const Stream& s) {

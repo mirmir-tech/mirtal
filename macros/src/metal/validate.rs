@@ -22,7 +22,7 @@ pub fn validate_library(source: &str, span: Span) -> syn::Result<()> {
 
 fn compile(source: &str, span: Span) -> syn::Result<()> {
     let mut child = match Command::new("xcrun")
-        .args(["-sdk", "macosx", "metal", "-x", "metal", "-fsyntax-only", "-"])
+        .args(["metal", "-x", "metal", "-fsyntax-only", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
