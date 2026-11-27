@@ -5,6 +5,7 @@
 mod compiled;
 mod library;
 mod metal;
+mod source;
 
 use proc_macro::TokenStream;
 
@@ -51,12 +52,13 @@ pub fn compiled(attributes: TokenStream, item: TokenStream) -> TokenStream {
 /// Declares a fixed-arity Metal kernel with a checked Rust-side contract.
 ///
 /// The macro generates a factory function returning a typed
-/// `mirtal::MetalKernel<INPUTS, OUTPUTS>`. `source` and `header` accept either
-/// `inline "..."` or `file "path/to/source.metal"`; file paths are relative to
-/// `CARGO_MANIFEST_DIR`. During Rust compilation, Apple's Metal compiler checks
+/// `mirtal::MetalKernel<INPUTS, OUTPUTS>`. `source` and `header` accept
+/// `inline "..."`, `file "path/to/source.metal"` or `files ["a.h", "b.h"]`,
+/// which joins the files in order, each followed by a newline; file paths are
+/// relative to `CARGO_MANIFEST_DIR`. During Rust compilation, Apple's Metal compiler checks
 /// the generated function and reports invalid MSL at the macro invocation.
 ///
-/// Buffer types may be `bool`, `u32`, `i32`, `f16`, `bf16`, `f32`, the generic
+/// Buffer types may be `bool`, `u8`, `u32`, `i32`, `f16`, `bf16`, `f32`, the generic
 /// floating-point constraint `float`, or a declared dtype template. Templates
 /// use `dtype`, `int`, or `bool` defaults and must be supplied explicitly in
 /// `mirtal::Dispatch` when launching the kernel.
@@ -106,9 +108,10 @@ pub fn metal_kernel(input: TokenStream) -> TokenStream {
 /// `mirtal::MetalLibrary::export`, then use the aliasing dispatch API for
 /// kernels that mutate buffers supplied by the caller.
 ///
-/// `source` accepts `inline "..."` or `file "path/to/library.metal"`. File
-/// paths are relative to `CARGO_MANIFEST_DIR`, and the complete translation unit
-/// is validated with Apple's Metal compiler during the Rust build.
+/// `source` accepts `inline "..."`, `file "path/to/library.metal"` or
+/// `files ["a.h", "b.metal"]`, joined as for `metal_kernel!`. File paths are
+/// relative to `CARGO_MANIFEST_DIR`, and the complete translation unit is
+/// validated with Apple's Metal compiler during the Rust build.
 ///
 /// # Example
 ///

@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "mirtal/bridge/dtype.h"
 #include "mirtal/bridge/attention.h"
 #include "mirtal/bridge/ops.h"
 #include "mirtal/bridge/aliasing.h"
@@ -97,7 +98,7 @@ std::shared_ptr<Array> array_from_u32(
 std::shared_ptr<Array> array_from_owned_native_handle(std::size_t address);
 std::size_t array_native_handle(const Array& array) noexcept;
 rust::Vec<std::int32_t> array_shape(const Array& array);
-std::uint8_t array_dtype(const Array& array);
+DType array_dtype(const Array& array);
 std::size_t array_len(const Array& array) noexcept;
 void array_detach(const Array& array);
 void array_eval(const Array& array);
@@ -140,16 +141,16 @@ std::shared_ptr<Array> rms_norm_unit(
     const Stream& stream);
 std::shared_ptr<Array> astype(
     const Array& input,
-    std::uint8_t dtype,
+    DType dtype,
     const Stream& stream);
 std::shared_ptr<Array> from_fp8(
     const Array& input,
-    std::uint8_t dtype,
+    DType dtype,
     const Stream& stream);
 std::shared_ptr<Array> to_fp8(const Array& input, const Stream& stream);
 std::shared_ptr<Array> view_dtype(
     const Array& input,
-    std::uint8_t dtype,
+    DType dtype,
     const Stream& stream);
 std::shared_ptr<Array> contiguous(const Array& input, const Stream& stream);
 std::shared_ptr<Array> reshape(
@@ -200,10 +201,14 @@ std::size_t metal_kernel_native_handle(const MetalKernel& kernel) noexcept;
 std::unique_ptr<MetalLibrary> new_metal_library(rust::Str name, rust::Str source);
 std::size_t metal_library_native_handle(const MetalLibrary& library) noexcept;
 std::unique_ptr<TensorMap> load_safetensors(rust::Str path, const Stream& stream);
+struct TensorRange;
+std::unique_ptr<TensorMap> load_tensor_ranges(
+    rust::Str path, rust::Slice<const TensorRange> ranges, const Stream& stream);
 std::size_t tensor_map_len(const TensorMap& tensors) noexcept;
 void tensor_map_eval(const TensorMap& tensors);
 bool tensor_map_contains(const TensorMap& tensors, rust::Str name);
 std::shared_ptr<Array> tensor_map_get(const TensorMap& tensors, rust::Str name);
+std::shared_ptr<Array> tensor_map_take(TensorMap& tensors, rust::Str name);
 void export_graph_dot(const Array& array, rust::Str path);
 std::unique_ptr<MetalLaunch> new_metal_launch(
     std::int32_t grid_x,
@@ -216,10 +221,10 @@ std::unique_ptr<MetalLaunch> new_metal_launch(
 void metal_launch_add_output(
     MetalLaunch& launch,
     rust::Slice<const std::int32_t> shape,
-    std::uint8_t dtype);
+    DType dtype);
 void metal_launch_add_template_int(MetalLaunch& launch, rust::Str name, std::int32_t value);
 void metal_launch_add_template_bool(MetalLaunch& launch, rust::Str name, bool value);
-void metal_launch_add_template_dtype(MetalLaunch& launch, rust::Str name, std::uint8_t value);
+void metal_launch_add_template_dtype(MetalLaunch& launch, rust::Str name, DType value);
 void metal_launch_set_init(MetalLaunch& launch, float value) noexcept;
 std::unique_ptr<Arrays> metal_dispatch(
     const MetalKernel& kernel,

@@ -93,3 +93,25 @@ fn dimensions(values: &[usize]) -> Result<Vec<i32>> {
         .map(i32::try_from)
         .collect::<std::result::Result<_, _>>()?)
 }
+
+#[cfg(test)]
+mod tests {
+    use mirtal_sys::ops::ffi;
+
+    use crate::{Array, Device, Result};
+
+    /// `depends` must keep host-constructed inputs on the caller's stream
+    /// instead of letting MLX place the `Depends` node on `default_stream`.
+    #[test]
+    fn depends_anchors_host_input_on_explicit_stream() -> Result<()> {
+        let stream = Device::gpu(0).new_stream()?;
+        let offset = Array::from_slice(&[7_u32], [1])?;
+        let dependency = stream.graph().add(&offset, &offset)?;
+        let anchored = stream.graph().depends(&offset, &[&dependency])?;
+        assert!(ffi::array_primitive_on_stream(anchored.native()?, stream.native()?)?);
+        stream.eval(&anchored)?;
+        stream.synchronize()?;
+        assert_eq!(stream.read::<u32>(&anchored)?, vec![7]);
+        Ok(())
+    }
+}

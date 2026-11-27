@@ -69,6 +69,13 @@ pub mod ffi {
             options: &QuantizationOptions,
             stream: &Stream,
         ) -> Result<SharedPtr<Array>>;
+        fn gather_mm(
+            input: &Array,
+            weight: &Array,
+            indices: &NativeGatherIndices,
+            sorted_indices: bool,
+            stream: &Stream,
+        ) -> Result<SharedPtr<Array>>;
         fn dequantize(
             weight: &Array,
             scales: &Array,

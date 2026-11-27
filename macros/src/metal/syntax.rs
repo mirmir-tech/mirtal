@@ -4,6 +4,8 @@ use syn::{
     punctuated::Punctuated,
 };
 
+use crate::source::Source;
+
 pub(super) struct Kernel {
     pub visibility: Visibility,
     pub function: Ident,
@@ -36,11 +38,6 @@ pub(super) struct Buffer {
 pub(super) enum BufferKind {
     Array(Ident),
     Scalar(Ident),
-}
-
-pub(super) enum Source {
-    Inline(LitStr),
-    File(LitStr),
 }
 
 impl Parse for Kernel {
@@ -119,18 +116,6 @@ impl Parse for Buffer {
             BufferKind::Array(marker)
         };
         Ok(Self { name, kind })
-    }
-}
-
-impl Parse for Source {
-    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let mode: Ident = input.parse()?;
-        let value = input.parse()?;
-        match mode.to_string().as_str() {
-            "inline" => Ok(Self::Inline(value)),
-            "file" => Ok(Self::File(value)),
-            _ => Err(syn::Error::new(mode.span(), "expected `inline` or `file`")),
-        }
     }
 }
 

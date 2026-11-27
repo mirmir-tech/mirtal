@@ -22,6 +22,30 @@ pub struct GatherIndices<'array> {
 }
 
 impl Graph<'_> {
+    /// Multiplies dense matrices selected from both operands' batch
+    /// dimensions: `input[lhs] @ weight[rhs]`, with MLX's `gather_mm` indexing.
+    ///
+    /// Remains lazy and uses this graph's explicit stream. `sorted_indices`
+    /// promises ascending RHS indices, which lets MLX run segmented products.
+    pub fn gather_mm(
+        self,
+        input: &Array,
+        weight: &Array,
+        indices: GatherIndices<'_>,
+        sorted_indices: bool,
+    ) -> Result<Array> {
+        Array::from_raw(
+            ffi::gather_mm(
+                input.native()?,
+                weight.native()?,
+                &indices.native(),
+                sorted_indices,
+                self.native()?,
+            )?,
+            "gather mm",
+        )
+    }
+
     /// Selects quantized right-hand matrices; preserves implicit left indexing.
     pub fn gather_qmm(
         self,

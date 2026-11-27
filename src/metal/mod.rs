@@ -149,7 +149,7 @@ fn add_templates(launch: &mut UniquePtr<ffi::MetalLaunch>, templates: &[Template
                 ffi::metal_launch_add_template_bool(launch.pin_mut(), template.name, value);
             },
             TemplateValue::DType(value) => {
-                ffi::metal_launch_add_template_dtype(launch.pin_mut(), template.name, value as u8);
+                ffi::metal_launch_add_template_dtype(launch.pin_mut(), template.name, value.into());
             },
         }
     }
@@ -164,7 +164,11 @@ fn native_launch<const OUTPUTS: usize>(
     let mut launch =
         ffi::new_metal_launch(grid_x, grid_y, grid_z, group_x, group_y, group_z, dispatch.verbose);
     for output in outputs {
-        ffi::metal_launch_add_output(launch.pin_mut(), &output.shape.native()?, output.dtype as u8);
+        ffi::metal_launch_add_output(
+            launch.pin_mut(),
+            &output.shape.native()?,
+            output.dtype.into(),
+        );
     }
     add_templates(&mut launch, &dispatch.templates);
     if let Some(value) = dispatch.init_value {

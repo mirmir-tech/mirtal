@@ -28,7 +28,7 @@ pub use compile::{CompileOptions, Compiled};
 pub use device::{Device, DeviceKind};
 pub use dtype::DType;
 pub use element::Element;
-pub use error::{Error, Result};
+pub use error::{Error, Result, TensorRangeError};
 pub use graph::Graph;
 pub use metal::{
     AliasingDispatch, DTypeConstraint, Dispatch, KernelDescriptor, MetalFunction, MetalKernel,
@@ -44,7 +44,7 @@ pub use quantized::{
 pub use rope::{FrequencyRopeOptions, RopeOptions};
 pub use shape::Shape;
 pub use stream::Stream;
-pub use tensors::TensorFile;
+pub use tensors::{TensorFile, TensorRange};
 
 /// Returns the version of the linked native MLX library.
 pub fn version() -> Result<String> {

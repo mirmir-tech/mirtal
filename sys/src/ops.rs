@@ -7,6 +7,7 @@ pub mod ffi {
         type Array = crate::ffi::Array;
         type Arrays = crate::ffi::Arrays;
         type Stream = crate::ffi::Stream;
+        type DType = crate::ffi::DType;
 
         fn subtract(left: &Array, right: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn negative(input: &Array, stream: &Stream) -> Result<SharedPtr<Array>>;
@@ -40,10 +41,15 @@ pub mod ffi {
             start: f32,
             stop: f32,
             stride: f32,
-            dtype: u8,
+            dtype: DType,
             stream: &Stream,
         ) -> Result<SharedPtr<Array>>;
-        fn full(shape: &[i32], value: f32, dtype: u8, stream: &Stream) -> Result<SharedPtr<Array>>;
+        fn full(
+            shape: &[i32],
+            value: f32,
+            dtype: DType,
+            stream: &Stream,
+        ) -> Result<SharedPtr<Array>>;
         fn concatenate(inputs: &Arrays, axis: i32, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn stack(inputs: &Arrays, axis: i32, stream: &Stream) -> Result<SharedPtr<Array>>;
         fn repeat(
@@ -79,6 +85,7 @@ pub mod ffi {
             dependencies: &Arrays,
             stream: &Stream,
         ) -> Result<SharedPtr<Array>>;
+        fn array_primitive_on_stream(input: &Array, stream: &Stream) -> Result<bool>;
         fn argpartition(
             input: &Array,
             kth: i32,
